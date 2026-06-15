@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from '../layouts/AuthLayout'
 import { login } from '../services/authService'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      await login(email, password)
+      await login(identifier, password)
       navigate('/')
     } catch {
       setError('Não foi possível entrar. Verifique suas credenciais.')
@@ -28,18 +28,10 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50">
-        <div className="mb-8 lg:hidden">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white">
-            DS
-          </div>
+      <div className="rounded-2xl border border-[#E6E8E9] bg-white p-8 shadow-lg">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-800">Entrar</h1>
-          <p className="mt-1 text-sm text-slate-500">Acesse o painel administrativo</p>
-        </div>
-
-        <div className="mb-8 hidden lg:block">
-          <h1 className="text-2xl font-bold text-slate-800">Entrar</h1>
-          <p className="mt-1 text-sm text-slate-500">Use suas credenciais para acessar o sistema</p>
+          <p className="mt-1 text-sm text-[#A9AFB4]">Use seu e-mail ou matrícula para acessar</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -50,16 +42,16 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
-              E-mail
+            <label htmlFor="identifier" className="mb-1.5 block text-sm font-medium text-slate-700">
+              E-mail ou Matrícula
             </label>
             <input
-              id="email"
-              type="email"
+              id="identifier"
+              type="text"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="seu@email.com ou matrícula"
               className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
             />
           </div>
@@ -101,6 +93,11 @@ export default function LoginPage() {
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
+
+          <p className="text-sm text-slate-500">
+            Ainda não tem conta?{' '}
+            <Link to="/register" className="font-medium text-primary-600 hover:text-primary-700">Criar conta</Link>
+          </p>
         </form>
       </div>
     </AuthLayout>

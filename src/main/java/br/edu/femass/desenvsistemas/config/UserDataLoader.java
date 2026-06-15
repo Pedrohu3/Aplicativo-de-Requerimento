@@ -12,11 +12,16 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class UserDataLoader implements CommandLineRunner {
 
+    private static final String MASTER_NAME = System.getenv().getOrDefault("APP_MASTER_NAME", "Master Admin");
+    private static final String MASTER_EMAIL = System.getenv().getOrDefault("APP_MASTER_EMAIL", "master@femass.edu.br");
+    private static final String MASTER_PASSWORD = System.getenv().getOrDefault("APP_MASTER_PASSWORD", "Master@123!");
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
+        criarSeNaoExistir(MASTER_NAME, MASTER_EMAIL, MASTER_PASSWORD, Role.ADMIN);
         criarSeNaoExistir("Administrador", "admin@femass.edu.br", "admin123", Role.ADMIN);
         criarSeNaoExistir("Ana Aluno", "aluno@femass.edu.br", "senha123", Role.ALUNO);
         criarSeNaoExistir("Carlos Professor", "professor@femass.edu.br", "senha123", Role.PROFESSOR);

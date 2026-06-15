@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   CAMPO_TIPOS,
   ROLES,
+  atualizarTipo,
   criarTipo,
   listarTiposTodos,
 } from '../services/requerimentoService'
@@ -22,18 +23,21 @@ const emptyEtapa = (ordem) => ({
   descricao: '',
 })
 
+const emptyForm = {
+  nome: '',
+  descricao: '',
+  campos: [emptyCampo(0)],
+  etapas: [emptyEtapa(0)],
+}
+
 export default function TiposRequerimentoPage() {
   const [tipos, setTipos] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({
-    nome: '',
-    descricao: '',
-    campos: [emptyCampo(0)],
-    etapas: [emptyEtapa(0)],
-  })
+  const [form, setForm] = useState(emptyForm)
 
   async function loadTipos() {
     try {
@@ -49,6 +53,37 @@ export default function TiposRequerimentoPage() {
   useEffect(() => {
     loadTipos()
   }, [])
+
+  function startEdit(tipo) {
+    setEditingId(tipo.id)
+    setForm({
+      nome: tipo.nome,
+      descricao: tipo.descricao ?? '',
+      campos: tipo.campos.filter((c) => !c.fixo).map((c, i) => ({
+        tipo: c.tipo,
+        label: c.label,
+        placeholder: c.placeholder ?? '',
+        opcoes: c.opcoes ?? [],
+        opcoesTexto: (c.opcoes ?? []).join(', '),
+        obrigatorio: c.obrigatorio,
+        ordem: i,
+      })),
+      etapas: tipo.etapas.map((e) => ({
+        ordem: e.ordem,
+        role: e.role,
+        descricao: e.descricao ?? '',
+      })),
+    })
+    setShowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function cancelForm() {
+    setShowForm(false)
+    setEditingId(null)
+    setForm(emptyForm)
+    setError('')
+  }
 
   function updateCampo(index, field, value) {
     const campos = [...form.campos]
@@ -88,17 +123,15 @@ export default function TiposRequerimentoPage() {
         })),
       }
 
-      await criarTipo(payload)
-      setShowForm(false)
-      setForm({
-        nome: '',
-        descricao: '',
-        campos: [emptyCampo(0)],
-        etapas: [emptyEtapa(0)],
-      })
+      if (editingId) {
+        await atualizarTipo(editingId, payload)
+      } else {
+        await criarTipo(payload)
+      }
+      cancelForm()
       await loadTipos()
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Erro ao criar tipo de requerimento.')
+      setError(err.response?.data?.message ?? 'Erro ao salvar tipo de requerimento.')
     } finally {
       setSubmitting(false)
     }
@@ -113,13 +146,15 @@ export default function TiposRequerimentoPage() {
             Defina formulários dinâmicos e fluxos de aprovação personalizados.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(!showForm)}
-          className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
-        >
-          {showForm ? 'Cancelar' : 'Novo tipo'}
-        </button>
+        {!showForm && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
+          >
+            Novo tipo
+          </button>
+        )}
       </div>
 
       {error && (
@@ -130,6 +165,14 @@ export default function TiposRequerimentoPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-800">
+              {editingId ? 'Editar tipo de requerimento' : 'Novo tipo de requerimento'}
+            </h3>
+            <button type="button" onClick={cancelForm} className="text-sm text-slate-500 hover:text-slate-700">
+              Cancelar
+            </button>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-slate-700">Nome</label>
@@ -149,6 +192,43 @@ export default function TiposRequerimentoPage() {
               />
             </div>
           </div>
+
+          <section>
+            <h3 className="mb-3 font-semibold text-slate-800">Campos fixos (preenchidos automaticamente)</h3>
+            <div className="space-y-4">
+              {[
+                { label: 'Nome', placeholder: 'Preenchido com o nome do solicitante' },
+                { label: 'Matrícula', placeholder: 'Preenchido com a matrícula do solicitante' },
+                { label: 'Curso', placeholder: 'Preenchido com o curso do solicitante' },
+              ].map(({ label, placeholder }) => (
+                <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 p-4 opacity-70">
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                    <input
+                      readOnly
+                      value={label}
+                      className="cursor-default rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500"
+                    />
+                    <input
+                      readOnly
+                      value="Texto curto"
+                      className="cursor-default rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400"
+                    />
+                    <input
+                      readOnly
+                      value={placeholder}
+                      className="cursor-default rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400"
+                    />
+                    <span className="flex items-center gap-2 text-xs text-slate-400">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Campo fixo
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
           <section>
             <div className="mb-3 flex items-center justify-between">
@@ -266,7 +346,7 @@ export default function TiposRequerimentoPage() {
             disabled={submitting}
             className="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
           >
-            {submitting ? 'Salvando...' : 'Salvar tipo de requerimento'}
+            {submitting ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Salvar tipo de requerimento'}
           </button>
         </form>
       )}
@@ -287,7 +367,7 @@ export default function TiposRequerimentoPage() {
                     {tipo.campos.length} campos · {tipo.etapas.length} etapas · por {tipo.criadorNome}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {tipo.etapas.map((etapa) => (
                     <span
                       key={etapa.id}
@@ -296,6 +376,13 @@ export default function TiposRequerimentoPage() {
                       {etapa.ordem + 1}. {etapa.role}
                     </span>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => startEdit(tipo)}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  >
+                    Editar
+                  </button>
                 </div>
               </li>
             ))}

@@ -45,6 +45,10 @@ public class Requerimento {
     @JoinColumn(name = "solicitante_id", nullable = false)
     private User solicitante;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curso_id")
+    private Curso curso;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

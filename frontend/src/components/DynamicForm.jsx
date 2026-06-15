@@ -15,23 +15,37 @@ export default function DynamicForm({ campos, valores, onChange, readOnly = fals
     handleChange(campoId, next.join('||'))
   }
 
+  function handleFile(campoId, file) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      handleChange(campoId, `${file.name}||${e.target.result}`)
+    }
+    reader.readAsDataURL(file)
+  }
+
   return (
     <div className="space-y-5">
       {campos.map((campo) => (
         <div key={campo.id ?? campo.ordem}>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700">
             {campo.label}
-            {campo.obrigatorio && <span className="text-red-500"> *</span>}
+            {campo.obrigatorio && <span className="text-red-500">*</span>}
+            {campo.fixo && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-400">
+                automático
+              </span>
+            )}
           </label>
 
           {campo.tipo === 'TEXTO' && (
             <input
               type="text"
-              disabled={readOnly}
+              readOnly={campo.fixo || readOnly}
               value={valores[String(campo.id)] ?? ''}
               placeholder={campo.placeholder}
-              onChange={(e) => handleChange(campo.id, e.target.value)}
-              className={inputClass}
+              onChange={campo.fixo || readOnly ? undefined : (e) => handleChange(campo.id, e.target.value)}
+              className={`${inputClass} ${campo.fixo ? 'cursor-default bg-slate-50 text-slate-600 focus:border-slate-300 focus:ring-0' : ''}`}
             />
           )}
 
@@ -119,6 +133,40 @@ export default function DynamicForm({ campos, valores, onChange, readOnly = fals
               })}
             </div>
           )}
+
+          {campo.tipo === 'ANEXO' && (() => {
+            const stored = valores[String(campo.id)] ?? ''
+            const sepIdx = stored.indexOf('||')
+            const filename = sepIdx >= 0 ? stored.slice(0, sepIdx) : ''
+            const dataUrl = sepIdx >= 0 ? stored.slice(sepIdx + 2) : ''
+            return readOnly ? (
+              dataUrl ? (
+                <a
+                  href={dataUrl}
+                  download={filename}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  <svg className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  {filename || 'Baixar anexo'}
+                </a>
+              ) : (
+                <span className="text-sm text-slate-400">Nenhum arquivo anexado</span>
+              )
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  onChange={(e) => handleFile(campo.id, e.target.files?.[0])}
+                  className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-700 hover:file:bg-primary-100"
+                />
+                {filename && (
+                  <p className="text-xs text-slate-500">Arquivo selecionado: <span className="font-medium">{filename}</span></p>
+                )}
+              </div>
+            )
+          })()}
         </div>
       ))}
     </div>
@@ -129,6 +177,10 @@ export function formatValor(campo, valor) {
   if (!valor) return '-'
   if (campo.tipo === 'CHECKBOX') {
     return valor.split('||').filter(Boolean).join(', ')
+  }
+  if (campo.tipo === 'ANEXO') {
+    const sepIdx = valor.indexOf('||')
+    return sepIdx >= 0 ? valor.slice(0, sepIdx) : valor
   }
   return valor
 }

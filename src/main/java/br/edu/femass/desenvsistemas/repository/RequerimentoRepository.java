@@ -12,6 +12,8 @@ public interface RequerimentoRepository extends JpaRepository<Requerimento, Long
 
     List<Requerimento> findBySolicitanteIdOrderByCriadoEmDesc(Long solicitanteId);
 
+    boolean existsByTipoRequerimentoId(Long tipoRequerimentoId);
+
     @Query("""
             SELECT DISTINCT r FROM Requerimento r
             JOIN r.tipoRequerimento t

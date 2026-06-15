@@ -4,22 +4,30 @@ import Navbar from '../components/Navbar'
 import Sidebar from '../components/Sidebar'
 
 const pageTitles = {
-  '/': 'Dashboard',
+  '/': 'Início',
   '/novo-requerimento': 'Novo Requerimento',
   '/meus-requerimentos': 'Meus Requerimentos',
   '/aprovacoes': 'Aprovações',
+  '/usuarios': 'Usuários',
+  '/cursos': 'Cursos',
   '/tipos-requerimento': 'Tipos de Requerimento',
+  '/como-funciona': 'Como Funciona',
+}
+
+function resolveTitle(pathname) {
+  if (pageTitles[pathname]) return pageTitles[pathname]
+  if (pathname.startsWith('/requerimentos/') && pathname.endsWith('/editar')) return 'Editar Requerimento'
+  if (pathname.startsWith('/requerimentos/')) return 'Detalhes do Requerimento'
+  return 'Sistema de Requerimentos'
 }
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
-  const title =
-    pageTitles[location.pathname] ??
-    (location.pathname.startsWith('/requerimentos/') ? 'Detalhe do Requerimento' : 'Painel')
+  const title = resolveTitle(location.pathname)
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#E6E8E9]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -27,6 +35,9 @@ export default function AdminLayout() {
         <main className="flex-1 p-4 lg:p-6">
           <Outlet />
         </main>
+        <footer className="px-6 py-3 text-center text-xs text-[#A9AFB4]">
+          © {new Date().getFullYear()} FEMASS — Sistema de Requerimentos
+        </footer>
       </div>
     </div>
   )

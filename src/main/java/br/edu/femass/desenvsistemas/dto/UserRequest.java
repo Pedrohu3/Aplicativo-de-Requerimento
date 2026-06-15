@@ -16,6 +16,10 @@ public class UserRequest {
     @Size(max = 120, message = "O nome deve ter no máximo 120 caracteres")
     private String nome;
 
+    private String matricula;
+
+    private Long cursoId;
+
     @NotBlank(message = "O e-mail é obrigatório")
     @Email(message = "E-mail inválido")
     private String email;
@@ -26,4 +30,6 @@ public class UserRequest {
 
     @NotNull(message = "A role é obrigatória")
     private Role role;
+
+    private Boolean admin;
 }

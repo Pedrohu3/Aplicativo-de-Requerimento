@@ -29,6 +29,7 @@ public class CampoFormularioResponse {
     private List<String> opcoes;
     private Boolean obrigatorio;
     private Integer ordem;
+    private Boolean fixo;
 
     public static CampoFormularioResponse fromEntity(CampoFormulario campo) {
         return CampoFormularioResponse.builder()
@@ -39,6 +40,7 @@ public class CampoFormularioResponse {
                 .opcoes(parseOpcoes(campo.getOpcoes()))
                 .obrigatorio(campo.getObrigatorio())
                 .ordem(campo.getOrdem())
+                .fixo(Boolean.TRUE.equals(campo.getFixo()))
                 .build();
     }
 

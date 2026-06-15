@@ -50,6 +50,9 @@ public class CampoFormulario {
     @Builder.Default
     private Boolean obrigatorio = false;
 
+    @Builder.Default
+    private Boolean fixo = false;
+
     @Column(nullable = false)
     private Integer ordem;
 }

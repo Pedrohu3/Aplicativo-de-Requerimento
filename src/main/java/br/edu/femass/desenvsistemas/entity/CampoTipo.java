@@ -7,5 +7,6 @@ public enum CampoTipo {
     OPCAO_UNICA,
     CHECKBOX,
     DATA,
-    NUMERO
+    NUMERO,
+    ANEXO
 }

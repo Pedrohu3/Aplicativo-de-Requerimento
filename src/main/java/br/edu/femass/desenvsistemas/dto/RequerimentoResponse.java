@@ -28,10 +28,12 @@ public class RequerimentoResponse {
     private String tipoRequerimentoNome;
     private String solicitanteNome;
     private String solicitanteEmail;
+    private String cursoNome;
     private StatusRequerimento status;
     private Integer etapaAtual;
     private Role etapaAtualRole;
     private String etapaAtualDescricao;
+    private boolean podeAprovarAtual;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
     private Map<String, String> valores;
@@ -64,6 +66,7 @@ public class RequerimentoResponse {
                 .tipoRequerimentoNome(requerimento.getTipoRequerimento().getNome())
                 .solicitanteNome(requerimento.getSolicitante().getNome())
                 .solicitanteEmail(requerimento.getSolicitante().getEmail())
+                .cursoNome(requerimento.getCurso() != null ? requerimento.getCurso().getNome() : null)
                 .status(requerimento.getStatus())
                 .etapaAtual(requerimento.getEtapaAtual())
                 .etapaAtualRole(etapaRole)

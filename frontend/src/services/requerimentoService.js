@@ -20,6 +20,11 @@ export async function criarTipo(payload) {
   return data
 }
 
+export async function atualizarTipo(id, payload) {
+  const { data } = await api.put(`/tipos-requerimento/${id}`, payload)
+  return data
+}
+
 export async function desativarTipo(id) {
   await api.delete(`/tipos-requerimento/${id}`)
 }
@@ -59,6 +64,11 @@ export async function cancelarRequerimento(id) {
   return data
 }
 
+export async function atualizarRequerimento(id, payload) {
+  const { data } = await api.put(`/requerimentos/${id}`, payload)
+  return data
+}
+
 export const CAMPO_TIPOS = [
   { value: 'TEXTO', label: 'Texto curto' },
   { value: 'TEXTO_LONGO', label: 'Texto longo' },
@@ -67,6 +77,7 @@ export const CAMPO_TIPOS = [
   { value: 'CHECKBOX', label: 'Múltipla escolha (checkbox)' },
   { value: 'DATA', label: 'Data' },
   { value: 'NUMERO', label: 'Número' },
+  { value: 'ANEXO', label: 'Anexo (arquivo)' },
 ]
 
 export const ROLES = [

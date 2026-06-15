@@ -5,6 +5,7 @@ import br.edu.femass.desenvsistemas.dto.RequerimentoRequest;
 import br.edu.femass.desenvsistemas.dto.RequerimentoResponse;
 import br.edu.femass.desenvsistemas.entity.AcaoAprovacao;
 import br.edu.femass.desenvsistemas.entity.CampoFormulario;
+import br.edu.femass.desenvsistemas.entity.Curso;
 import br.edu.femass.desenvsistemas.entity.EtapaAprovacao;
 import br.edu.femass.desenvsistemas.entity.HistoricoAprovacao;
 import br.edu.femass.desenvsistemas.entity.Requerimento;
@@ -34,6 +35,7 @@ public class RequerimentoService {
     private final RequerimentoRepository requerimentoRepository;
     private final TipoRequerimentoService tipoRequerimentoService;
     private final AuthHelper authHelper;
+    private final EmailService emailService;
 
     @Transactional(readOnly = true)
     public List<RequerimentoResponse> listarMeus() {
@@ -47,17 +49,27 @@ public class RequerimentoService {
     public List<RequerimentoResponse> listarPendentesAprovacao() {
         User usuario = authHelper.getCurrentUser();
         if (usuario.getRole() == Role.ALUNO) {
-            throw new ForbiddenException("Alunos não possuem fila de aprovação");
+            return List.of();
         }
 
-        List<Requerimento> pendentes = requerimentoRepository.findPendentesPorRole(
-                StatusRequerimento.EM_APROVACAO,
-                usuario.getRole()
-        );
+        List<Requerimento> pendentes;
 
-        if (usuario.getRole() == Role.ADMIN) {
+        if (isAdmin(usuario)) {
             pendentes = requerimentoRepository.findAll().stream()
                     .filter(r -> r.getStatus() == StatusRequerimento.EM_APROVACAO)
+                    .toList();
+        } else {
+            pendentes = requerimentoRepository.findPendentesPorRole(
+                    StatusRequerimento.EM_APROVACAO,
+                    usuario.getRole()
+            ).stream()
+                    .filter(r -> {
+                        Curso curso = r.getCurso();
+                        if (curso == null) return true;
+                        return curso.getResponsaveis().stream()
+                                .anyMatch(resp -> resp.getRole() == usuario.getRole()
+                                        && resp.getUser().getId().equals(usuario.getId()));
+                    })
                     .toList();
         }
 
@@ -68,7 +80,11 @@ public class RequerimentoService {
 
     @Transactional(readOnly = true)
     public RequerimentoResponse buscarPorId(Long id) {
-        return RequerimentoResponse.fromEntity(getRequerimento(id));
+        Requerimento req = getRequerimento(id);
+        User usuario = authHelper.getCurrentUser();
+        RequerimentoResponse response = RequerimentoResponse.fromEntity(req);
+        response.setPodeAprovarAtual(calcularPodeAprovar(req, usuario));
+        return response;
     }
 
     @Transactional
@@ -85,6 +101,7 @@ public class RequerimentoService {
         Requerimento requerimento = Requerimento.builder()
                 .tipoRequerimento(tipo)
                 .solicitante(solicitante)
+                .curso(solicitante.getCurso())
                 .status(Boolean.TRUE.equals(request.getEnviar())
                         ? StatusRequerimento.EM_APROVACAO
                         : StatusRequerimento.RASCUNHO)
@@ -96,7 +113,14 @@ public class RequerimentoService {
         }
 
         salvarValores(requerimento, tipo, request.getValores());
-        return RequerimentoResponse.fromEntity(requerimentoRepository.save(requerimento));
+        Requerimento saved = requerimentoRepository.save(requerimento);
+        if (Boolean.TRUE.equals(request.getEnviar()) && saved.getStatus() == StatusRequerimento.EM_APROVACAO) {
+            emailService.enviarConfirmacaoEnvio(
+                    saved.getSolicitante().getEmail(), saved.getSolicitante().getNome(),
+                    saved.getTipoRequerimento().getNome(), saved.getId());
+            notificarProximoAprovador(saved);
+        }
+        return RequerimentoResponse.fromEntity(saved);
     }
 
     @Transactional
@@ -120,10 +144,16 @@ public class RequerimentoService {
         validarValores(requerimento.getTipoRequerimento(), valores, true);
         requerimento.setStatus(StatusRequerimento.EM_APROVACAO);
         requerimento.setEtapaAtual(0);
+        requerimento.setCurso(requerimento.getSolicitante().getCurso());
         requerimento.setAtualizadoEm(LocalDateTime.now());
         finalizarEnvio(requerimento, requerimento.getTipoRequerimento());
 
-        return RequerimentoResponse.fromEntity(requerimentoRepository.save(requerimento));
+        Requerimento saved = requerimentoRepository.save(requerimento);
+        emailService.enviarConfirmacaoEnvio(
+                saved.getSolicitante().getEmail(), saved.getSolicitante().getNome(),
+                saved.getTipoRequerimento().getNome(), saved.getId());
+        notificarProximoAprovador(saved);
+        return RequerimentoResponse.fromEntity(saved);
     }
 
     @Transactional
@@ -136,13 +166,17 @@ public class RequerimentoService {
         }
 
         EtapaAprovacao etapaAtual = getEtapaAtual(requerimento);
-        validarPermissaoAprovacao(aprovador, etapaAtual);
+        validarPermissaoAprovacao(aprovador, etapaAtual, requerimento);
 
         if (request.getAcao() == AcaoAprovacao.REJEITADO) {
             requerimento.setStatus(StatusRequerimento.REJEITADO);
             requerimento.setAtualizadoEm(LocalDateTime.now());
             registrarHistorico(requerimento, aprovador, etapaAtual, request);
-            return RequerimentoResponse.fromEntity(requerimentoRepository.save(requerimento));
+            Requerimento rejeitado = requerimentoRepository.save(requerimento);
+            emailService.enviarResultadoFinal(
+                    rejeitado.getSolicitante().getEmail(), rejeitado.getSolicitante().getNome(),
+                    rejeitado.getTipoRequerimento().getNome(), rejeitado.getId(), false);
+            return RequerimentoResponse.fromEntity(rejeitado);
         }
 
         int proximaEtapa = requerimento.getEtapaAtual() + 1;
@@ -158,6 +192,33 @@ public class RequerimentoService {
         }
 
         requerimento.setAtualizadoEm(LocalDateTime.now());
+        Requerimento saved = requerimentoRepository.save(requerimento);
+
+        if (ultimaEtapa) {
+            emailService.enviarResultadoFinal(
+                    saved.getSolicitante().getEmail(), saved.getSolicitante().getNome(),
+                    saved.getTipoRequerimento().getNome(), saved.getId(), true);
+        } else {
+            notificarProximoAprovador(saved);
+        }
+
+        return RequerimentoResponse.fromEntity(saved);
+    }
+
+    @Transactional
+    public RequerimentoResponse atualizar(Long id, RequerimentoRequest request) {
+        User usuario = authHelper.getCurrentUser();
+        if (!isAdmin(usuario)) {
+            throw new ForbiddenException("Apenas administradores podem editar requerimentos");
+        }
+
+        Requerimento requerimento = getRequerimento(id);
+        TipoRequerimento tipo = requerimento.getTipoRequerimento();
+
+        requerimento.getValores().clear();
+        salvarValores(requerimento, tipo, request.getValores());
+        requerimento.setAtualizadoEm(LocalDateTime.now());
+
         return RequerimentoResponse.fromEntity(requerimentoRepository.save(requerimento));
     }
 
@@ -167,7 +228,7 @@ public class RequerimentoService {
         User usuario = authHelper.getCurrentUser();
 
         if (!requerimento.getSolicitante().getId().equals(usuario.getId())
-                && usuario.getRole() != Role.ADMIN) {
+                && !isAdmin(usuario)) {
             throw new ForbiddenException("Sem permissão para cancelar este requerimento");
         }
 
@@ -230,13 +291,62 @@ public class RequerimentoService {
                 .toList();
     }
 
-    private void validarPermissaoAprovacao(User aprovador, EtapaAprovacao etapa) {
-        if (aprovador.getRole() == Role.ADMIN) {
-            return;
-        }
+    private void validarPermissaoAprovacao(User aprovador, EtapaAprovacao etapa, Requerimento requerimento) {
+        if (isAdmin(aprovador)) return;
         if (aprovador.getRole() != etapa.getRole()) {
             throw new ForbiddenException("Seu perfil não pode aprovar a etapa atual");
         }
+        Curso curso = requerimento.getCurso();
+        if (curso != null) {
+            boolean isDesignado = curso.getResponsaveis().stream()
+                    .anyMatch(r -> r.getRole() == etapa.getRole()
+                            && r.getUser().getId().equals(aprovador.getId()));
+            if (!isDesignado) {
+                throw new ForbiddenException("Você não é o responsável por esta etapa para o curso do solicitante");
+            }
+        }
+    }
+
+    private boolean calcularPodeAprovar(Requerimento req, User usuario) {
+        if (req.getStatus() != StatusRequerimento.EM_APROVACAO) return false;
+        if (isAdmin(usuario)) return true;
+        EtapaAprovacao etapa;
+        try {
+            etapa = getEtapaAtual(req);
+        } catch (Exception e) {
+            return false;
+        }
+        if (usuario.getRole() != etapa.getRole()) return false;
+        Curso curso = req.getCurso();
+        if (curso == null) return true;
+        return curso.getResponsaveis().stream()
+                .anyMatch(r -> r.getRole() == etapa.getRole()
+                        && r.getUser().getId().equals(usuario.getId()));
+    }
+
+    private void notificarProximoAprovador(Requerimento requerimento) {
+        if (requerimento.getStatus() != StatusRequerimento.EM_APROVACAO) return;
+        List<EtapaAprovacao> etapas = etapasOrdenadas(requerimento.getTipoRequerimento());
+        etapas.stream()
+                .filter(e -> e.getOrdem().equals(requerimento.getEtapaAtual()))
+                .findFirst()
+                .ifPresent(etapa -> {
+                    Curso curso = requerimento.getCurso();
+                    if (curso == null) return;
+                    curso.getResponsaveis().stream()
+                            .filter(r -> r.getRole() == etapa.getRole())
+                            .map(br.edu.femass.desenvsistemas.entity.CursoResponsavel::getUser)
+                            .findFirst()
+                            .ifPresent(aprovador -> emailService.enviarNotificacaoPendencia(
+                                    aprovador.getEmail(), aprovador.getNome(),
+                                    requerimento.getSolicitante().getNome(),
+                                    requerimento.getTipoRequerimento().getNome(),
+                                    requerimento.getId()));
+                });
+    }
+
+    private boolean isAdmin(User usuario) {
+        return usuario.isAdmin() || usuario.getRole() == Role.ADMIN;
     }
 
     private void registrarHistorico(

@@ -36,6 +36,6 @@ public class ValorCampo {
     @JoinColumn(name = "campo_id", nullable = false)
     private CampoFormulario campo;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String valor;
 }

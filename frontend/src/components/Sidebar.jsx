@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
 import { getStoredUser } from '../services/authService'
+import logo from '../assets/logo.jpg'
 
-const iconClass = 'h-5 w-5'
+const iconClass = 'h-5 w-5 shrink-0'
 
 const menuItems = [
   {
-    label: 'Dashboard',
+    label: 'Início',
     to: '/',
     roles: null,
     icon: (
@@ -54,6 +55,36 @@ const menuItems = [
       </svg>
     ),
   },
+  {
+    label: 'Usuários',
+    to: '/usuarios',
+    roles: ['ADMIN'],
+    icon: (
+      <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Cursos',
+    to: '/cursos',
+    roles: ['ADMIN'],
+    icon: (
+      <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0-6l-3.5 2M12 20l3.5-2" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Como Funciona',
+    to: '/como-funciona',
+    roles: null,
+    icon: (
+      <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
 ]
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -68,51 +99,71 @@ export default function Sidebar({ isOpen, onClose }) {
         <button
           type="button"
           aria-label="Fechar menu"
-          className="fixed inset-0 z-40 bg-slate-900/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-slate-300 transition-transform duration-300 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[#E6E8E9] bg-white shadow-sm transition-transform duration-300 lg:static lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-16 items-center gap-3 border-b border-slate-700/60 px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white">
-            RQ
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">Requerimentos</p>
-            <p className="text-xs text-slate-400">Sistema FEMASS</p>
-          </div>
+        {/* Logo */}
+        <div className="flex flex-col items-center border-b border-[#E6E8E9] px-4 py-4">
+          <img src={logo} alt="FEMASS" className="mx-auto h-20 w-auto object-contain" />
+          <p className="mt-1 text-[11px] font-medium text-[#A9AFB4]">Sistema de Requerimentos</p>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
-          {visibleItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'text-slate-300 hover:bg-sidebar-hover hover:text-white'
-                }`
-              }
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          ))}
+        {/* Navegação */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#A9AFB4' }}>
+            Menu
+          </p>
+          <ul className="space-y-0.5">
+            {visibleItems.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.to === '/'}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                      isActive ? '' : 'hover:bg-[#EBF4FF]'
+                    }`
+                  }
+                  style={({ isActive }) => ({
+                    backgroundColor: isActive ? '#0E63B3' : undefined,
+                    color: isActive ? '#ffffff' : '#16508A',
+                  })}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span style={{ color: isActive ? '#ffffff' : '#0E63B3' }}>
+                        {item.icon}
+                      </span>
+                      {item.label}
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
         </nav>
 
-        <div className="border-t border-slate-700/60 p-4">
-          <div className="rounded-lg bg-sidebar-hover p-3">
-            <p className="text-xs font-medium text-slate-400">Perfil</p>
-            <p className="text-sm text-white">{user?.role ?? 'Usuário'}</p>
+        {/* Rodapé — usuário logado */}
+        <div className="border-t border-[#E6E8E9] p-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold uppercase"
+              style={{ backgroundColor: '#EBF4FF', color: '#0E63B3' }}
+            >
+              {(user?.name ?? 'U').charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium" style={{ color: '#16508A' }}>{user?.name ?? 'Usuário'}</p>
+              <p className="truncate text-xs" style={{ color: '#A9AFB4' }}>{user?.role ?? ''}</p>
+            </div>
           </div>
         </div>
       </aside>

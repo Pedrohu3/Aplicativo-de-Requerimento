@@ -13,12 +13,14 @@ import br.edu.femass.desenvsistemas.entity.User;
 import br.edu.femass.desenvsistemas.exception.BusinessException;
 import br.edu.femass.desenvsistemas.exception.ForbiddenException;
 import br.edu.femass.desenvsistemas.exception.ResourceNotFoundException;
+import br.edu.femass.desenvsistemas.repository.RequerimentoRepository;
 import br.edu.femass.desenvsistemas.repository.TipoRequerimentoRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -36,6 +38,7 @@ public class TipoRequerimentoService {
     );
 
     private final TipoRequerimentoRepository tipoRequerimentoRepository;
+    private final RequerimentoRepository requerimentoRepository;
     private final AuthHelper authHelper;
     private final ObjectMapper objectMapper;
 
@@ -71,7 +74,67 @@ public class TipoRequerimentoService {
                 .criador(criador)
                 .build();
 
-        request.getCampos().forEach(campoReq -> tipo.getCampos().add(buildCampo(campoReq, tipo)));
+        adicionarCamposFixos(tipo);
+        for (int i = 0; i < request.getCampos().size(); i++) {
+            CampoFormulario campo = buildCampo(request.getCampos().get(i), tipo);
+            campo.setOrdem(i + 3);
+            tipo.getCampos().add(campo);
+        }
+        request.getEtapas().forEach(etapaReq -> tipo.getEtapas().add(buildEtapa(etapaReq, tipo)));
+
+        return TipoRequerimentoResponse.fromEntity(tipoRequerimentoRepository.save(tipo));
+    }
+
+    @Transactional
+    public TipoRequerimentoResponse atualizar(Long id, TipoRequerimentoRequest request) {
+        User usuario = authHelper.getCurrentUser();
+        validarPermissaoCriacao(usuario);
+        validarCampos(request.getCampos());
+        validarEtapas(request.getEtapas());
+
+        TipoRequerimento tipo = getTipo(id);
+        tipo.setNome(request.getNome());
+        tipo.setDescricao(request.getDescricao());
+
+        // Garante que campos fixos existam (tipos criados antes dessa versão não os têm)
+        boolean hasFixo = tipo.getCampos().stream().anyMatch(c -> Boolean.TRUE.equals(c.getFixo()));
+        if (!hasFixo) {
+            adicionarCamposFixos(tipo);
+        }
+
+        // Atualiza apenas campos customizados in-place para preservar IDs (FK de ValorCampo)
+        List<CampoFormulario> existentesCustom = new ArrayList<>(
+                tipo.getCampos().stream().filter(c -> !Boolean.TRUE.equals(c.getFixo())).toList());
+        List<CampoFormularioRequest> novos = request.getCampos();
+
+        for (int i = 0; i < novos.size(); i++) {
+            CampoFormularioRequest campoReq = novos.get(i);
+            if (i < existentesCustom.size()) {
+                CampoFormulario campo = existentesCustom.get(i);
+                campo.setTipo(campoReq.getTipo());
+                campo.setLabel(campoReq.getLabel());
+                campo.setPlaceholder(campoReq.getPlaceholder());
+                campo.setOpcoes(serializeOpcoes(campoReq.getOpcoes()));
+                campo.setObrigatorio(campoReq.getObrigatorio());
+                campo.setOrdem(i + 3);
+            } else {
+                CampoFormulario campo = buildCampo(campoReq, tipo);
+                campo.setOrdem(i + 3);
+                tipo.getCampos().add(campo);
+            }
+        }
+
+        if (novos.size() < existentesCustom.size()) {
+            if (requerimentoRepository.existsByTipoRequerimentoId(id)) {
+                throw new BusinessException("Não é possível remover campos de um tipo que já possui requerimentos");
+            }
+            for (int i = existentesCustom.size() - 1; i >= novos.size(); i--) {
+                tipo.getCampos().remove(existentesCustom.get(i));
+            }
+        }
+
+        // Etapas podem ser recriadas livremente (histórico armazena ordem/role, sem FK)
+        tipo.getEtapas().clear();
         request.getEtapas().forEach(etapaReq -> tipo.getEtapas().add(buildEtapa(etapaReq, tipo)));
 
         return TipoRequerimentoResponse.fromEntity(tipoRequerimentoRepository.save(tipo));
@@ -111,6 +174,18 @@ public class TipoRequerimentoService {
         if (ordensDistintas != etapas.size()) {
             throw new BusinessException("As etapas do fluxo devem ter ordens únicas");
         }
+    }
+
+    private void adicionarCamposFixos(TipoRequerimento tipo) {
+        tipo.getCampos().add(CampoFormulario.builder()
+                .tipoRequerimento(tipo).tipo(CampoTipo.TEXTO).label("Nome")
+                .fixo(true).obrigatorio(true).ordem(0).build());
+        tipo.getCampos().add(CampoFormulario.builder()
+                .tipoRequerimento(tipo).tipo(CampoTipo.TEXTO).label("Matrícula")
+                .fixo(true).obrigatorio(true).ordem(1).build());
+        tipo.getCampos().add(CampoFormulario.builder()
+                .tipoRequerimento(tipo).tipo(CampoTipo.TEXTO).label("Curso")
+                .fixo(true).obrigatorio(true).ordem(2).build());
     }
 
     private CampoFormulario buildCampo(CampoFormularioRequest request, TipoRequerimento tipo) {

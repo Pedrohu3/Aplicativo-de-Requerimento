@@ -22,19 +22,43 @@ export function isAuthenticated() {
 }
 
 export async function login(email, password) {
-  const token = encodeCredentials(email, password)
+  const { data } = await api.post('/auth/login', { email, senha: password })
 
-  const { data } = await api.get('/me', {
-    headers: { Authorization: `Basic ${token}` },
+  const user = {
+    name: data.user?.nome ?? email.split('@')[0],
+    matricula: data.user?.matricula ?? null,
+    email: data.user?.email ?? email,
+    role: data.user?.role ?? null,
+    cursoId: data.user?.cursoId ?? null,
+    cursoNome: data.user?.cursoNome ?? null,
+  }
+
+  localStorage.setItem(AUTH_TOKEN_KEY, data.token)
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
+
+  return user
+}
+
+export async function register(nome, matricula, email, password, cursoId) {
+  const { data } = await api.post('/auth/register', {
+    nome,
+    matricula,
+    email,
+    senha: password,
+    role: 'ALUNO',
+    cursoId: cursoId || null,
   })
 
   const user = {
-    name: data.name ?? email.split('@')[0],
-    email: data.email ?? email,
-    role: data.role ?? null,
+    name: data.user?.nome ?? nome,
+    matricula: data.user?.matricula ?? matricula,
+    email: data.user?.email ?? email,
+    role: data.user?.role ?? 'ALUNO',
+    cursoId: data.user?.cursoId ?? cursoId ?? null,
+    cursoNome: data.user?.cursoNome ?? null,
   }
 
-  localStorage.setItem(AUTH_TOKEN_KEY, token)
+  localStorage.setItem(AUTH_TOKEN_KEY, data.token)
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
 
   return user

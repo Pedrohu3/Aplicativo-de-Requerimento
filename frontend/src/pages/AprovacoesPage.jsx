@@ -47,10 +47,12 @@ export default function AprovacoesPage() {
                   <p className="text-sm text-slate-500">
                     Solicitante: {item.solicitanteNome} ({item.solicitanteEmail})
                   </p>
-                  <p className="text-xs text-amber-700">
-                    Etapa atual: {item.etapaAtualRole}
-                    {item.etapaAtualDescricao ? ` — ${item.etapaAtualDescricao}` : ''}
-                  </p>
+                  {item.status === 'EM_APROVACAO' && item.etapaAtualRole && (
+                    <p className="text-xs text-amber-700">
+                      Aguardando: {item.etapaAtualRole}
+                      {item.etapaAtualDescricao ? ` — ${item.etapaAtualDescricao}` : ''}
+                    </p>
+                  )}
                 </div>
                 <Link
                   to={`/requerimentos/${item.id}`}

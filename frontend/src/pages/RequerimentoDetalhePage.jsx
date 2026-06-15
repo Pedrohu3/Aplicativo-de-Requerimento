@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { formatValor } from '../components/DynamicForm'
 import StatusBadge from '../components/StatusBadge'
 import { getStoredUser } from '../services/authService'
@@ -12,6 +12,7 @@ import {
 
 export default function RequerimentoDetalhePage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const user = getStoredUser()
   const [requerimento, setRequerimento] = useState(null)
   const [tipo, setTipo] = useState(null)
@@ -64,9 +65,7 @@ export default function RequerimentoDetalhePage() {
     }
   }
 
-  const podeAprovar =
-    requerimento?.status === 'EM_APROVACAO' &&
-    (user?.role === 'ADMIN' || user?.role === requerimento?.etapaAtualRole)
+  const podeAprovar = requerimento?.podeAprovarAtual === true
 
   const podeCancelar =
     requerimento &&
@@ -82,16 +81,38 @@ export default function RequerimentoDetalhePage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <Link to="/meus-requerimentos" className="text-sm font-medium text-primary-600 hover:text-primary-700">
-        ← Voltar
-      </Link>
+    <div className="w-full space-y-6 text-left">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Detalhe do requerimento</h2>
+          <p className="text-sm text-slate-500">Acompanhe o status, respostas e histórico da solicitação.</p>
+        </div>
+        <div className="flex gap-2">
+          {user?.role === 'ADMIN' && (
+            <button
+              type="button"
+              onClick={() => navigate(`/requerimentos/${id}/editar`)}
+              className="rounded-lg border border-primary-300 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-700 shadow-sm transition hover:bg-primary-100"
+            >
+              Editar
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => navigate('/meus-requerimentos')}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            ← Voltar
+          </button>
+        </div>
+      </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">{requerimento.tipoRequerimentoNome}</h2>
-            <p className="text-sm text-slate-500">
+            <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Requerimento</p>
+            <h3 className="mt-1 text-lg font-semibold text-slate-900">{requerimento.tipoRequerimentoNome}</h3>
+            <p className="mt-1 text-sm text-slate-600">
               Solicitante: {requerimento.solicitanteNome} ·{' '}
               {new Date(requerimento.criadoEm).toLocaleString('pt-BR')}
             </p>
@@ -119,14 +140,54 @@ export default function RequerimentoDetalhePage() {
           </div>
         </section>
 
-        {requerimento.status === 'EM_APROVACAO' && (
-          <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-sm font-medium text-amber-800">
-              Etapa {requerimento.etapaAtual + 1}: aguardando {requerimento.etapaAtualRole}
-            </p>
-            {requerimento.etapaAtualDescricao && (
-              <p className="text-sm text-amber-700">{requerimento.etapaAtualDescricao}</p>
-            )}
+        {tipo.etapas?.length > 0 && (
+          <section className="mb-6">
+            <h3 className="mb-4 font-semibold text-slate-800">Fluxo de aprovação</h3>
+            <ol className="space-y-1">
+              {tipo.etapas.map((etapa, index) => {
+                const concluida = requerimento.historico?.[index]
+                const isAtual = !concluida && index === (requerimento.historico?.length ?? 0) && requerimento.status === 'EM_APROVACAO'
+                const isFutura = !concluida && !isAtual
+                const hasNext = index < tipo.etapas.length - 1
+
+                let circulo, label, sublabel
+                if (concluida) {
+                  const approved = concluida.acao === 'APROVADO'
+                  circulo = `${approved ? 'bg-emerald-500' : 'bg-red-400'} text-white`
+                  label = <p className="text-sm font-semibold text-slate-800">{concluida.aprovadorNome}</p>
+                  sublabel = (
+                    <>
+                      <p className={`text-xs ${approved ? 'text-emerald-600' : 'text-red-500'}`}>{approved ? 'Aprovado' : 'Rejeitado'}</p>
+                      {concluida.observacao && <p className="mt-1 text-xs italic text-slate-600">{concluida.observacao}</p>}
+                    </>
+                  )
+                } else if (isAtual) {
+                  circulo = 'bg-amber-400 text-white ring-4 ring-amber-100'
+                  label = <p className="text-sm font-semibold text-amber-800">Aguardando aprovação</p>
+                  sublabel = etapa.descricao && <p className="text-xs text-amber-700">{etapa.descricao}</p>
+                } else {
+                  circulo = 'bg-slate-200 text-slate-400'
+                  label = <p className="text-sm text-slate-400">Pendente</p>
+                  sublabel = etapa.descricao && <p className="text-xs text-slate-400">{etapa.descricao}</p>
+                }
+
+                return (
+                  <li key={etapa.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${circulo}`}>
+                        {index + 1}
+                      </span>
+                      {hasNext && <div className="mt-1 w-0.5 flex-1 min-h-[1.5rem] bg-slate-200" />}
+                    </div>
+                    <div className={`pb-5 min-w-0 ${isFutura ? 'opacity-40' : ''}`}>
+                      <p className={`text-xs font-medium uppercase tracking-wide ${isAtual ? 'text-amber-600' : 'text-slate-400'}`}>{etapa.role}</p>
+                      {label}
+                      {sublabel}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
           </section>
         )}
 
@@ -172,23 +233,7 @@ export default function RequerimentoDetalhePage() {
           </button>
         )}
 
-        {requerimento.historico?.length > 0 && (
-          <section className="mt-6">
-            <h3 className="mb-3 font-semibold text-slate-800">Histórico de aprovação</h3>
-            <ul className="space-y-3">
-              {requerimento.historico.map((item) => (
-                <li key={item.id} className="rounded-lg border border-slate-200 px-4 py-3 text-sm">
-                  <p className="font-medium text-slate-800">
-                    {item.aprovadorNome} — {item.acao === 'APROVADO' ? 'Aprovou' : 'Rejeitou'} ({item.roleEtapa})
-                  </p>
-                  {item.observacao && <p className="text-slate-600">{item.observacao}</p>}
-                  <p className="text-xs text-slate-400">{new Date(item.criadoEm).toLocaleString('pt-BR')}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
+      </section>
     </div>
   )
 }

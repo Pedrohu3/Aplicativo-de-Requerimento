@@ -25,4 +25,8 @@ public class UserUpdateRequest {
 
     @NotNull(message = "A role é obrigatória")
     private Role role;
+
+    private Boolean admin;
+
+    private Long cursoId;
 }
