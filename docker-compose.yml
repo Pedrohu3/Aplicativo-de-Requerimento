@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: desenv-sistemas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: desenv_sistemas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5433:5432"
+    volumes:
+      - desenv_sistemas_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d desenv_sistemas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: desenv-sistemas-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/desenv_sistemas
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: admin
+      MAIL_HOST: smtp-relay.brevo.com
+      MAIL_PORT: 465
+      MAIL_USERNAME: ${MAIL_USERNAME:-b44431001@smtp-brevo.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM:-noreply@femass.edu.br}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:-}
+      STORAGE_BUCKET_NAME: ${STORAGE_BUCKET_NAME:-}
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-}
+    ports:
+      - "8081:8081"
+
+volumes:
+  desenv_sistemas_db_data:

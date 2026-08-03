@@ -6,6 +6,7 @@ import br.edu.femass.desenvsistemas.dto.TipoRequerimentoRequest;
 import br.edu.femass.desenvsistemas.dto.TipoRequerimentoResponse;
 import br.edu.femass.desenvsistemas.entity.CampoFormulario;
 import br.edu.femass.desenvsistemas.entity.CampoTipo;
+import br.edu.femass.desenvsistemas.entity.EscopoRequerimento;
 import br.edu.femass.desenvsistemas.entity.EtapaAprovacao;
 import br.edu.femass.desenvsistemas.entity.Role;
 import br.edu.femass.desenvsistemas.entity.TipoRequerimento;
@@ -67,17 +68,20 @@ public class TipoRequerimentoService {
         validarPermissaoCriacao(criador);
         validarCampos(request.getCampos());
         validarEtapas(request.getEtapas());
+        validarEscopo(request.getEscopo(), request.getEtapas());
 
         TipoRequerimento tipo = TipoRequerimento.builder()
                 .nome(request.getNome())
                 .descricao(request.getDescricao())
+                .escopo(request.getEscopo())
                 .criador(criador)
                 .build();
 
         adicionarCamposFixos(tipo);
+        int ordemBase = tipo.getCampos().size();
         for (int i = 0; i < request.getCampos().size(); i++) {
             CampoFormulario campo = buildCampo(request.getCampos().get(i), tipo);
-            campo.setOrdem(i + 3);
+            campo.setOrdem(i + ordemBase);
             tipo.getCampos().add(campo);
         }
         request.getEtapas().forEach(etapaReq -> tipo.getEtapas().add(buildEtapa(etapaReq, tipo)));
@@ -91,14 +95,26 @@ public class TipoRequerimentoService {
         validarPermissaoCriacao(usuario);
         validarCampos(request.getCampos());
         validarEtapas(request.getEtapas());
+        validarEscopo(request.getEscopo(), request.getEtapas());
 
         TipoRequerimento tipo = getTipo(id);
         tipo.setNome(request.getNome());
         tipo.setDescricao(request.getDescricao());
+        tipo.setEscopo(request.getEscopo());
 
-        // Garante que campos fixos existam (tipos criados antes dessa versão não os têm)
-        boolean hasFixo = tipo.getCampos().stream().anyMatch(c -> Boolean.TRUE.equals(c.getFixo()));
-        if (!hasFixo) {
+        // Recria os campos fixos se o conjunto esperado mudou (ex.: escopo trocou para/de
+        // ADMINISTRATIVO ou DISCIPLINA) — só é permitido enquanto o tipo não tiver requerimentos.
+        Set<String> labelsAtuais = tipo.getCampos().stream()
+                .filter(c -> Boolean.TRUE.equals(c.getFixo()))
+                .map(CampoFormulario::getLabel)
+                .collect(java.util.stream.Collectors.toSet());
+        Set<String> labelsEsperados = labelsCamposFixos(request.getEscopo());
+        if (!labelsAtuais.equals(labelsEsperados)) {
+            if (requerimentoRepository.existsByTipoRequerimentoId(id)) {
+                throw new BusinessException(
+                        "Não é possível alterar os campos fixos de um tipo que já possui requerimentos");
+            }
+            tipo.getCampos().removeIf(c -> Boolean.TRUE.equals(c.getFixo()));
             adicionarCamposFixos(tipo);
         }
 
@@ -106,6 +122,7 @@ public class TipoRequerimentoService {
         List<CampoFormulario> existentesCustom = new ArrayList<>(
                 tipo.getCampos().stream().filter(c -> !Boolean.TRUE.equals(c.getFixo())).toList());
         List<CampoFormularioRequest> novos = request.getCampos();
+        int ordemBase = tipo.getCampos().size() - existentesCustom.size();
 
         for (int i = 0; i < novos.size(); i++) {
             CampoFormularioRequest campoReq = novos.get(i);
@@ -116,10 +133,10 @@ public class TipoRequerimentoService {
                 campo.setPlaceholder(campoReq.getPlaceholder());
                 campo.setOpcoes(serializeOpcoes(campoReq.getOpcoes()));
                 campo.setObrigatorio(campoReq.getObrigatorio());
-                campo.setOrdem(i + 3);
+                campo.setOrdem(i + ordemBase);
             } else {
                 CampoFormulario campo = buildCampo(campoReq, tipo);
-                campo.setOrdem(i + 3);
+                campo.setOrdem(i + ordemBase);
                 tipo.getCampos().add(campo);
             }
         }
@@ -176,16 +193,52 @@ public class TipoRequerimentoService {
         }
     }
 
+    private void validarEscopo(EscopoRequerimento escopo, List<EtapaAprovacaoRequest> etapas) {
+        boolean temEtapaProfessor = etapas.stream().anyMatch(e -> e.getRole() == Role.PROFESSOR);
+
+        if (escopo == EscopoRequerimento.DISCIPLINA && !temEtapaProfessor) {
+            throw new BusinessException("O escopo Disciplina exige ao menos uma etapa com a role PROFESSOR");
+        }
+        if (escopo != EscopoRequerimento.DISCIPLINA && temEtapaProfessor) {
+            throw new BusinessException(
+                    "Etapas com a role PROFESSOR só são permitidas em tipos com escopo Disciplina");
+        }
+    }
+
+    /**
+     * Campos fixos por escopo: Nome e Matrícula sempre existem; Curso sai para tipos
+     * ADMINISTRATIVO (solicitados por servidores, que podem não ter curso vinculado);
+     * Disciplina só existe para tipos DISCIPLINA (o aluno escolhe, define o professor aprovador).
+     */
+    private Set<String> labelsCamposFixos(EscopoRequerimento escopo) {
+        Set<String> labels = new java.util.LinkedHashSet<>(List.of("Nome", "Matrícula"));
+        if (escopo != EscopoRequerimento.ADMINISTRATIVO) {
+            labels.add("Curso");
+        }
+        if (escopo == EscopoRequerimento.DISCIPLINA) {
+            labels.add("Disciplina");
+        }
+        return labels;
+    }
+
     private void adicionarCamposFixos(TipoRequerimento tipo) {
+        int ordem = 0;
         tipo.getCampos().add(CampoFormulario.builder()
                 .tipoRequerimento(tipo).tipo(CampoTipo.TEXTO).label("Nome")
-                .fixo(true).obrigatorio(true).ordem(0).build());
+                .fixo(true).obrigatorio(true).ordem(ordem++).build());
         tipo.getCampos().add(CampoFormulario.builder()
                 .tipoRequerimento(tipo).tipo(CampoTipo.TEXTO).label("Matrícula")
-                .fixo(true).obrigatorio(true).ordem(1).build());
-        tipo.getCampos().add(CampoFormulario.builder()
-                .tipoRequerimento(tipo).tipo(CampoTipo.TEXTO).label("Curso")
-                .fixo(true).obrigatorio(true).ordem(2).build());
+                .fixo(true).obrigatorio(true).ordem(ordem++).build());
+        if (tipo.getEscopo() != EscopoRequerimento.ADMINISTRATIVO) {
+            tipo.getCampos().add(CampoFormulario.builder()
+                    .tipoRequerimento(tipo).tipo(CampoTipo.TEXTO).label("Curso")
+                    .fixo(true).obrigatorio(true).ordem(ordem++).build());
+        }
+        if (tipo.getEscopo() == EscopoRequerimento.DISCIPLINA) {
+            tipo.getCampos().add(CampoFormulario.builder()
+                    .tipoRequerimento(tipo).tipo(CampoTipo.SELECAO).label("Disciplina")
+                    .fixo(true).obrigatorio(true).ordem(ordem++).build());
+        }
     }
 
     private CampoFormulario buildCampo(CampoFormularioRequest request, TipoRequerimento tipo) {
@@ -206,6 +259,7 @@ public class TipoRequerimentoService {
                 .ordem(request.getOrdem())
                 .role(request.getRole())
                 .descricao(request.getDescricao())
+                .diasLimite(request.getDiasLimite())
                 .build();
     }
 

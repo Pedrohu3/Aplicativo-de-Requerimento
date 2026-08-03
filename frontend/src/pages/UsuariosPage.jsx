@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
-import { listarUsuarios, atualizarUsuario } from '../services/userService'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { listarUsuarios, atualizarUsuario, deletarUsuario } from '../services/userService'
 import { listarCursos } from '../services/cursosService'
 import { ROLES } from '../services/requerimentoService'
 import { getStoredUser } from '../services/authService'
@@ -9,6 +9,7 @@ export default function UsuariosPage() {
   const user = getStoredUser()
   if (user?.role !== 'ADMIN') return <Navigate to="/" replace />
 
+  const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [cursos, setCursos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -51,11 +52,32 @@ export default function UsuariosPage() {
     }
   }
 
+  async function handleExcluir(id) {
+    try {
+      setSavingId(id)
+      await deletarUsuario(id)
+      await load()
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Erro ao excluir usuário.')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-800">Usuários do sistema</h2>
-        <p className="text-sm text-slate-500">Defina as roles e cursos de cada usuário no sistema.</p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Usuários do sistema</h2>
+          <p className="text-sm text-slate-500">Defina as roles e cursos de cada usuário no sistema.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/usuarios/novo')}
+          className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
+        >
+          Novo usuário
+        </button>
       </div>
 
       {error && (
@@ -77,6 +99,7 @@ export default function UsuariosPage() {
                   <th className="px-4 py-3 font-semibold">Role atual</th>
                   <th className="px-4 py-3 font-semibold">Alterar role</th>
                   <th className="px-4 py-3 font-semibold">Curso</th>
+                  <th className="px-4 py-3 font-semibold">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -112,6 +135,20 @@ export default function UsuariosPage() {
                         </select>
                       ) : (
                         <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {item.email === user?.email ? (
+                        <span className="text-xs text-slate-400">você</span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={savingId === item.id}
+                          onClick={() => handleExcluir(item.id)}
+                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          Excluir
+                        </button>
                       )}
                     </td>
                   </tr>

@@ -97,10 +97,25 @@ export const STATUS_LABELS = {
   CANCELADO: 'Cancelado',
 }
 
+export const ESCOPOS_REQUERIMENTO = [
+  { value: 'DISCIPLINA', label: 'Disciplina', descricao: 'Exige uma etapa PROFESSOR; o aluno escolhe a disciplina, que define o professor aprovador (ex.: abono de faltas).' },
+  { value: 'CURSO', label: 'Curso', descricao: 'Aprovação via responsáveis do curso do solicitante (ex.: validação de atividades complementares).' },
+  { value: 'ADMINISTRATIVO', label: 'Administrativo', descricao: 'Sem curso ou disciplina; aprovado por quem tiver a role da etapa, em qualquer curso (ex.: acerto de ponto).' },
+]
+
+export const MOTIVOS_REJEICAO = [
+  { value: 'DOCUMENTACAO_INCOMPLETA', label: 'Documentação incompleta' },
+  { value: 'DADOS_INCONSISTENTES', label: 'Dados inconsistentes' },
+  { value: 'NAO_ATENDE_CRITERIOS', label: 'Não atende aos critérios' },
+  { value: 'FORA_DO_PRAZO', label: 'Fora do prazo' },
+  { value: 'DUPLICADO', label: 'Requerimento duplicado' },
+  { value: 'OUTRO', label: 'Outro' },
+]
+
 export const STATUS_COLORS = {
-  RASCUNHO: 'bg-slate-100 text-slate-700',
-  EM_APROVACAO: 'bg-amber-100 text-amber-800',
-  APROVADO: 'bg-emerald-100 text-emerald-800',
-  REJEITADO: 'bg-red-100 text-red-800',
-  CANCELADO: 'bg-gray-100 text-gray-600',
+  RASCUNHO: 'border-slate-200 bg-slate-100 text-slate-700',
+  EM_APROVACAO: 'border-amber-200 bg-amber-100 text-amber-800',
+  APROVADO: 'border-emerald-200 bg-emerald-100 text-emerald-800',
+  REJEITADO: 'border-red-200 bg-red-100 text-red-800',
+  CANCELADO: 'border-gray-200 bg-gray-100 text-gray-600',
 }

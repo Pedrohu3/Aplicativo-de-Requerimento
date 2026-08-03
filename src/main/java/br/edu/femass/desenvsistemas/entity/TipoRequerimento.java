@@ -3,6 +3,8 @@ package br.edu.femass.desenvsistemas.entity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -48,6 +50,11 @@ public class TipoRequerimento {
     @Column(nullable = false)
     @Builder.Default
     private Boolean ativo = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20) not null default 'CURSO'")
+    @Builder.Default
+    private EscopoRequerimento escopo = EscopoRequerimento.CURSO;
 
     @Column(nullable = false)
     @Builder.Default

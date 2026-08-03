@@ -9,6 +9,9 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -62,6 +65,23 @@ public class EmailService {
                         aprovado
                                 ? "Acompanhe o andamento acessando o sistema."
                                 : "Entre em contato com a secretaria para mais informações."
+                )
+        );
+    }
+
+    @Async
+    public void enviarAvisoPrazo(String emailAprovador, String nomeAprovador,
+                                 String nomeSolicitante, String tipoRequerimento,
+                                 Long protocolo, LocalDateTime prazoEm) {
+        enviar(
+                emailAprovador,
+                "Prazo de aprovação se aproximando – " + tipoRequerimento,
+                html(
+                        "Prazo de aprovação se aproximando",
+                        nomeAprovador,
+                        "O requerimento de <strong>" + tipoRequerimento + "</strong> do aluno <strong>" + nomeSolicitante + "</strong> ainda aguarda sua análise.",
+                        "Protocolo <strong>#" + protocolo + "</strong>. Prazo para decisão: <strong>"
+                                + prazoEm.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) + "</strong>."
                 )
         );
     }

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
+import ConfirmDialog from '../components/ConfirmDialog'
 import {
   CAMPO_TIPOS,
+  ESCOPOS_REQUERIMENTO,
   ROLES,
   atualizarTipo,
   criarTipo,
-  listarTiposTodos,
+  desativarTipo,
+  listarTiposAtivos,
 } from '../services/requerimentoService'
 
 const emptyCampo = (ordem) => ({
@@ -21,11 +24,13 @@ const emptyEtapa = (ordem) => ({
   ordem,
   role: 'COORDENADOR',
   descricao: '',
+  diasLimite: '',
 })
 
 const emptyForm = {
   nome: '',
   descricao: '',
+  escopo: 'CURSO',
   campos: [emptyCampo(0)],
   etapas: [emptyEtapa(0)],
 }
@@ -38,15 +43,31 @@ export default function TiposRequerimentoPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState(emptyForm)
+  const [excluindoId, setExcluindoId] = useState(null)
+  const [confirmExcluirId, setConfirmExcluirId] = useState(null)
 
   async function loadTipos() {
     try {
       setLoading(true)
-      setTipos(await listarTiposTodos())
+      setTipos(await listarTiposAtivos())
     } catch {
       setError('Não foi possível carregar os tipos de requerimento.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleExcluir(id) {
+    setExcluindoId(id)
+    setError('')
+    try {
+      await desativarTipo(id)
+      setConfirmExcluirId(null)
+      await loadTipos()
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Erro ao excluir tipo de requerimento.')
+    } finally {
+      setExcluindoId(null)
     }
   }
 
@@ -59,6 +80,7 @@ export default function TiposRequerimentoPage() {
     setForm({
       nome: tipo.nome,
       descricao: tipo.descricao ?? '',
+      escopo: tipo.escopo ?? 'CURSO',
       campos: tipo.campos.filter((c) => !c.fixo).map((c, i) => ({
         tipo: c.tipo,
         label: c.label,
@@ -72,6 +94,7 @@ export default function TiposRequerimentoPage() {
         ordem: e.ordem,
         role: e.role,
         descricao: e.descricao ?? '',
+        diasLimite: e.diasLimite ?? '',
       })),
     })
     setShowForm(true)
@@ -97,6 +120,13 @@ export default function TiposRequerimentoPage() {
     setForm({ ...form, etapas })
   }
 
+  function updateEscopo(novoEscopo) {
+    const etapas = novoEscopo === 'DISCIPLINA'
+      ? form.etapas
+      : form.etapas.map((etapa) => (etapa.role === 'PROFESSOR' ? { ...etapa, role: 'COORDENADOR' } : etapa))
+    setForm({ ...form, escopo: novoEscopo, etapas })
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
@@ -106,6 +136,7 @@ export default function TiposRequerimentoPage() {
       const payload = {
         nome: form.nome,
         descricao: form.descricao,
+        escopo: form.escopo,
         campos: form.campos.map((campo, index) => ({
           tipo: campo.tipo,
           label: campo.label,
@@ -120,6 +151,7 @@ export default function TiposRequerimentoPage() {
           ordem: index,
           role: etapa.role,
           descricao: etapa.descricao,
+          diasLimite: etapa.diasLimite === '' ? null : Number(etapa.diasLimite),
         })),
       }
 
@@ -191,16 +223,40 @@ export default function TiposRequerimentoPage() {
                 className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm"
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Escopo</label>
+              <select
+                value={form.escopo}
+                onChange={(e) => updateEscopo(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm md:w-1/2"
+              >
+                {ESCOPOS_REQUERIMENTO.map((e) => (
+                  <option key={e.value} value={e.value}>{e.label}</option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-slate-500">
+                {ESCOPOS_REQUERIMENTO.find((e) => e.value === form.escopo)?.descricao}
+              </p>
+            </div>
           </div>
 
           <section>
             <h3 className="mb-3 font-semibold text-slate-800">Campos fixos (preenchidos automaticamente)</h3>
             <div className="space-y-4">
               {[
-                { label: 'Nome', placeholder: 'Preenchido com o nome do solicitante' },
-                { label: 'Matrícula', placeholder: 'Preenchido com a matrícula do solicitante' },
-                { label: 'Curso', placeholder: 'Preenchido com o curso do solicitante' },
-              ].map(({ label, placeholder }) => (
+                { label: 'Nome', tipo: 'Texto curto', placeholder: 'Preenchido com o nome do solicitante' },
+                { label: 'Matrícula', tipo: 'Texto curto', placeholder: 'Preenchido com a matrícula do solicitante' },
+                form.escopo !== 'ADMINISTRATIVO' && {
+                  label: 'Curso',
+                  tipo: 'Texto curto',
+                  placeholder: 'Preenchido com o curso do solicitante',
+                },
+                form.escopo === 'DISCIPLINA' && {
+                  label: 'Disciplina',
+                  tipo: 'Lista (select)',
+                  placeholder: 'Escolhida pelo aluno entre as disciplinas do seu curso',
+                },
+              ].filter(Boolean).map(({ label, tipo, placeholder }) => (
                 <div key={label} className="rounded-xl border border-slate-200 bg-slate-50 p-4 opacity-70">
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                     <input
@@ -210,7 +266,7 @@ export default function TiposRequerimentoPage() {
                     />
                     <input
                       readOnly
-                      value="Texto curto"
+                      value={tipo}
                       className="cursor-default rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-400"
                     />
                     <input
@@ -324,7 +380,7 @@ export default function TiposRequerimentoPage() {
                     onChange={(e) => updateEtapa(index, 'role', e.target.value)}
                     className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   >
-                    {ROLES.filter((r) => r !== 'ALUNO').map((role) => (
+                    {ROLES.filter((r) => r !== 'ALUNO' && (r !== 'PROFESSOR' || form.escopo === 'DISCIPLINA')).map((role) => (
                       <option key={role} value={role}>
                         {role}
                       </option>
@@ -335,6 +391,14 @@ export default function TiposRequerimentoPage() {
                     value={etapa.descricao}
                     onChange={(e) => updateEtapa(index, 'descricao', e.target.value)}
                     className="min-w-[220px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="Prazo (dias)"
+                    value={etapa.diasLimite}
+                    onChange={(e) => updateEtapa(index, 'diasLimite', e.target.value)}
+                    className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
                 </div>
               ))}
@@ -361,7 +425,12 @@ export default function TiposRequerimentoPage() {
             {tipos.map((tipo) => (
               <li key={tipo.id} className="flex flex-wrap items-center justify-between gap-4 p-5">
                 <div>
-                  <p className="font-semibold text-slate-800">{tipo.nome}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-800">{tipo.nome}</p>
+                    <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700">
+                      {ESCOPOS_REQUERIMENTO.find((e) => e.value === tipo.escopo)?.label ?? tipo.escopo}
+                    </span>
+                  </div>
                   <p className="text-sm text-slate-500">{tipo.descricao}</p>
                   <p className="mt-1 text-xs text-slate-400">
                     {tipo.campos.length} campos · {tipo.etapas.length} etapas · por {tipo.criadorNome}
@@ -383,12 +452,30 @@ export default function TiposRequerimentoPage() {
                   >
                     Editar
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmExcluirId(tipo.id)}
+                    className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Excluir
+                  </button>
                 </div>
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmExcluirId !== null}
+        title="Excluir tipo de requerimento?"
+        message="O tipo deixa de aparecer para novos requerimentos, mas os requerimentos já enviados com ele continuam intactos e visíveis normalmente."
+        confirmLabel="Excluir"
+        variant="danger"
+        confirmDisabled={excluindoId !== null}
+        onConfirm={() => handleExcluir(confirmExcluirId)}
+        onCancel={() => setConfirmExcluirId(null)}
+      />
     </div>
   )
 }

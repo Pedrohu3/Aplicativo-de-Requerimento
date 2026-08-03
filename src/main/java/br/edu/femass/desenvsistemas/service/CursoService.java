@@ -5,6 +5,7 @@ import br.edu.femass.desenvsistemas.dto.CursoResponsavelRequest;
 import br.edu.femass.desenvsistemas.dto.CursoResponse;
 import br.edu.femass.desenvsistemas.entity.Curso;
 import br.edu.femass.desenvsistemas.entity.CursoResponsavel;
+import br.edu.femass.desenvsistemas.entity.Role;
 import br.edu.femass.desenvsistemas.entity.User;
 import br.edu.femass.desenvsistemas.exception.BusinessException;
 import br.edu.femass.desenvsistemas.exception.ResourceNotFoundException;
@@ -60,6 +61,11 @@ public class CursoService {
 
     @Transactional
     public CursoResponse atribuirResponsavel(Long cursoId, CursoResponsavelRequest request) {
+        if (request.getRole() == Role.PROFESSOR) {
+            throw new BusinessException(
+                    "Professores não são mais atribuídos por curso — cadastre-os por disciplina na tela de Disciplinas");
+        }
+
         Curso curso = getCurso(cursoId);
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + request.getUserId()));

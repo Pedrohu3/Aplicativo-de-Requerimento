@@ -18,4 +18,6 @@ public class RequerimentoRequest {
     private Map<String, String> valores;
 
     private Boolean enviar;
+
+    private Long disciplinaId;
 }

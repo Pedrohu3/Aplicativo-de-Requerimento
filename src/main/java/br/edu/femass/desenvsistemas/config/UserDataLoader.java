@@ -21,13 +21,9 @@ public class UserDataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // Produção: só o admin inicial é criado automaticamente. Defina
+        // APP_MASTER_EMAIL/APP_MASTER_PASSWORD/APP_MASTER_NAME para customizar.
         criarSeNaoExistir(MASTER_NAME, MASTER_EMAIL, MASTER_PASSWORD, Role.ADMIN);
-        criarSeNaoExistir("Administrador", "admin@femass.edu.br", "admin123", Role.ADMIN);
-        criarSeNaoExistir("Ana Aluno", "aluno@femass.edu.br", "senha123", Role.ALUNO);
-        criarSeNaoExistir("Carlos Professor", "professor@femass.edu.br", "senha123", Role.PROFESSOR);
-        criarSeNaoExistir("Maria Coordenadora", "coordenador@femass.edu.br", "senha123", Role.COORDENADOR);
-        criarSeNaoExistir("João Diretor", "diretor@femass.edu.br", "senha123", Role.DIRETOR);
-        criarSeNaoExistir("Paula Secretária", "secretario@femass.edu.br", "senha123", Role.SECRETARIO);
     }
 
     private void criarSeNaoExistir(String nome, String email, String senha, Role role) {

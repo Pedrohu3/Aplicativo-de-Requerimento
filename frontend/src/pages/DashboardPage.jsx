@@ -6,13 +6,13 @@ import { listarMeusRequerimentos, listarPendentes } from '../services/requerimen
 
 function StatCard({ label, value, colorBg, colorText, icon }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${colorBg}`}>
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${colorBg}`}>
         <span className={colorText}>{icon}</span>
       </div>
-      <div>
-        <p className="text-2xl font-bold text-slate-800">{value}</p>
-        <p className="text-xs text-slate-500">{label}</p>
+      <div className="min-w-0">
+        <p className="text-lg font-bold leading-tight text-slate-800">{value}</p>
+        <p className="truncate text-xs text-slate-500">{label}</p>
       </div>
     </div>
   )
@@ -78,13 +78,13 @@ export default function DashboardPage() {
 
       {/* Cards de resumo */}
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-100" />
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-14 animate-pulse rounded-xl bg-slate-100" />
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
           <StatCard
             label="Total de requerimentos"
             value={contadores.total}

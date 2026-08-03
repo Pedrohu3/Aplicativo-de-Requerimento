@@ -1,6 +1,7 @@
 package br.edu.femass.desenvsistemas.dto;
 
 import br.edu.femass.desenvsistemas.entity.AcaoAprovacao;
+import br.edu.femass.desenvsistemas.entity.MotivoRejeicao;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,4 +14,6 @@ public class AprovacaoRequest {
     private AcaoAprovacao acao;
 
     private String observacao;
+
+    private MotivoRejeicao motivoRejeicao;
 }

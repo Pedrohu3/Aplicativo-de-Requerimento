@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface RequerimentoRepository extends JpaRepository<Requerimento, Long> {
@@ -13,6 +14,9 @@ public interface RequerimentoRepository extends JpaRepository<Requerimento, Long
     List<Requerimento> findBySolicitanteIdOrderByCriadoEmDesc(Long solicitanteId);
 
     boolean existsByTipoRequerimentoId(Long tipoRequerimentoId);
+
+    List<Requerimento> findByStatusAndPrazoEmBetweenAndLembreteEnviadoFalse(
+            StatusRequerimento status, LocalDateTime inicio, LocalDateTime fim);
 
     @Query("""
             SELECT DISTINCT r FROM Requerimento r

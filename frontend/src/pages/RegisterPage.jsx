@@ -39,10 +39,10 @@ export default function RegisterPage() {
 
   return (
     <AuthLayout>
-      <div className="rounded-2xl border border-[#E6E8E9] bg-white p-8 shadow-lg">
+      <div className="rounded-2xl border border-gray-light bg-white p-8 shadow-lg">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-800">Criar conta</h1>
-          <p className="mt-1 text-sm text-[#A9AFB4]">Preencha seus dados para acessar o sistema.</p>
+          <p className="mt-1 text-sm text-gray-mid">Preencha seus dados para acessar o sistema.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

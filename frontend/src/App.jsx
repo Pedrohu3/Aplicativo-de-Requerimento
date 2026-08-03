@@ -9,9 +9,11 @@ import RegisterPage from './pages/RegisterPage'
 import NovoRequerimentoPage from './pages/NovoRequerimentoPage'
 import RequerimentoDetalhePage from './pages/RequerimentoDetalhePage'
 import CursosPage from './pages/CursosPage'
+import DisciplinasPage from './pages/DisciplinasPage'
 import EditarRequerimentoPage from './pages/EditarRequerimentoPage'
 import TiposRequerimentoPage from './pages/TiposRequerimentoPage'
 import UsuariosPage from './pages/UsuariosPage'
+import NovoUsuarioPage from './pages/NovoUsuarioPage'
 import ComoFuncionaPage from './pages/ComoFuncionaPage'
 import { isAuthenticated } from './services/authService'
 
@@ -34,7 +36,9 @@ export default function App() {
             <Route path="meus-requerimentos" element={<MeusRequerimentosPage />} />
             <Route path="aprovacoes" element={<AprovacoesPage />} />
             <Route path="usuarios" element={<UsuariosPage />} />
+            <Route path="usuarios/novo" element={<NovoUsuarioPage />} />
             <Route path="cursos" element={<CursosPage />} />
+            <Route path="disciplinas" element={<DisciplinasPage />} />
             <Route path="tipos-requerimento" element={<TiposRequerimentoPage />} />
             <Route path="requerimentos/:id" element={<RequerimentoDetalhePage />} />
             <Route path="requerimentos/:id/editar" element={<EditarRequerimentoPage />} />

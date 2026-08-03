@@ -2,8 +2,6 @@ package br.edu.femass.desenvsistemas.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,30 +16,26 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "etapas_aprovacao")
+@Table(name = "disciplinas")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EtapaAprovacao {
+public class Disciplina {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private String nome;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_requerimento_id", nullable = false)
-    private TipoRequerimento tipoRequerimento;
+    @JoinColumn(name = "curso_id", nullable = false)
+    private Curso curso;
 
-    @Column(nullable = false)
-    private Integer ordem;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
-
-    private String descricao;
-
-    private Integer diasLimite;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "professor_id")
+    private User professor;
 }

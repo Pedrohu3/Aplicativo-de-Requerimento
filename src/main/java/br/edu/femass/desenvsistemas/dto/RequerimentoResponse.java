@@ -29,6 +29,8 @@ public class RequerimentoResponse {
     private String solicitanteNome;
     private String solicitanteEmail;
     private String cursoNome;
+    private Long disciplinaId;
+    private String disciplinaNome;
     private StatusRequerimento status;
     private Integer etapaAtual;
     private Role etapaAtualRole;
@@ -36,6 +38,7 @@ public class RequerimentoResponse {
     private boolean podeAprovarAtual;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
+    private LocalDateTime prazoEm;
     private Map<String, String> valores;
     private List<HistoricoAprovacaoResponse> historico;
 
@@ -67,12 +70,15 @@ public class RequerimentoResponse {
                 .solicitanteNome(requerimento.getSolicitante().getNome())
                 .solicitanteEmail(requerimento.getSolicitante().getEmail())
                 .cursoNome(requerimento.getCurso() != null ? requerimento.getCurso().getNome() : null)
+                .disciplinaId(requerimento.getDisciplina() != null ? requerimento.getDisciplina().getId() : null)
+                .disciplinaNome(requerimento.getDisciplina() != null ? requerimento.getDisciplina().getNome() : null)
                 .status(requerimento.getStatus())
                 .etapaAtual(requerimento.getEtapaAtual())
                 .etapaAtualRole(etapaRole)
                 .etapaAtualDescricao(etapaDescricao)
                 .criadoEm(requerimento.getCriadoEm())
                 .atualizadoEm(requerimento.getAtualizadoEm())
+                .prazoEm(requerimento.getPrazoEm())
                 .valores(valoresMap)
                 .historico(requerimento.getHistorico().stream()
                         .map(HistoricoAprovacaoResponse::fromEntity)

@@ -19,6 +19,7 @@ public class EtapaAprovacaoResponse {
     private Integer ordem;
     private Role role;
     private String descricao;
+    private Integer diasLimite;
 
     public static EtapaAprovacaoResponse fromEntity(EtapaAprovacao etapa) {
         return EtapaAprovacaoResponse.builder()
@@ -26,6 +27,7 @@ public class EtapaAprovacaoResponse {
                 .ordem(etapa.getOrdem())
                 .role(etapa.getRole())
                 .descricao(etapa.getDescricao())
+                .diasLimite(etapa.getDiasLimite())
                 .build();
     }
 }

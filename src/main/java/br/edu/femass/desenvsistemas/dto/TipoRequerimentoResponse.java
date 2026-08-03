@@ -1,5 +1,6 @@
 package br.edu.femass.desenvsistemas.dto;
 
+import br.edu.femass.desenvsistemas.entity.EscopoRequerimento;
 import br.edu.femass.desenvsistemas.entity.TipoRequerimento;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,7 @@ public class TipoRequerimentoResponse {
     private String descricao;
     private String criadorNome;
     private Boolean ativo;
+    private EscopoRequerimento escopo;
     private LocalDateTime criadoEm;
     private List<CampoFormularioResponse> campos;
     private List<EtapaAprovacaoResponse> etapas;
@@ -33,6 +35,7 @@ public class TipoRequerimentoResponse {
                 .descricao(tipo.getDescricao())
                 .criadorNome(tipo.getCriador().getNome())
                 .ativo(tipo.getAtivo())
+                .escopo(tipo.getEscopo())
                 .criadoEm(tipo.getCriadoEm())
                 .campos(tipo.getCampos().stream().map(CampoFormularioResponse::fromEntity).toList())
                 .etapas(tipo.getEtapas().stream().map(EtapaAprovacaoResponse::fromEntity).toList())

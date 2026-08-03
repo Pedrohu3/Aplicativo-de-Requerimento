@@ -9,7 +9,9 @@ const pageTitles = {
   '/meus-requerimentos': 'Meus Requerimentos',
   '/aprovacoes': 'Aprovações',
   '/usuarios': 'Usuários',
+  '/usuarios/novo': 'Novo Usuário',
   '/cursos': 'Cursos',
+  '/disciplinas': 'Disciplinas',
   '/tipos-requerimento': 'Tipos de Requerimento',
   '/como-funciona': 'Como Funciona',
 }
@@ -27,7 +29,7 @@ export default function AdminLayout() {
   const title = resolveTitle(location.pathname)
 
   return (
-    <div className="flex min-h-screen bg-[#E6E8E9]">
+    <div className="flex min-h-screen bg-gray-light">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -35,7 +37,7 @@ export default function AdminLayout() {
         <main className="flex-1 p-4 lg:p-6">
           <Outlet />
         </main>
-        <footer className="px-6 py-3 text-center text-xs text-[#A9AFB4]">
+        <footer className="px-6 py-3 text-center text-xs text-gray-mid">
           © {new Date().getFullYear()} FEMASS — Sistema de Requerimentos
         </footer>
       </div>

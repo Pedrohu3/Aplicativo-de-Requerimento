@@ -54,6 +54,9 @@ public class HistoricoAprovacao {
     @Column(length = 1000)
     private String observacao;
 
+    @Enumerated(EnumType.STRING)
+    private MotivoRejeicao motivoRejeicao;
+
     @Column(nullable = false)
     @Builder.Default
     private LocalDateTime criadoEm = LocalDateTime.now();

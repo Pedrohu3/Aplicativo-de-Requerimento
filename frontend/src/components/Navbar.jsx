@@ -69,13 +69,13 @@ export default function Navbar({ title, onMenuToggle }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#E6E8E9] bg-white px-4 shadow-sm lg:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-gray-light bg-white px-4 shadow-sm lg:px-6">
       {/* Esquerda: hamburguer + título */}
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onMenuToggle}
-          className="rounded-lg p-2 text-[#A9AFB4] hover:bg-[#E6E8E9] lg:hidden"
+          className="rounded-lg p-2 text-gray-mid hover:bg-gray-light lg:hidden"
           aria-label="Abrir menu"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -84,7 +84,7 @@ export default function Navbar({ title, onMenuToggle }) {
         </button>
         <div>
           <h1 className="text-base font-semibold text-slate-800">{title}</h1>
-          <p className="hidden text-xs text-[#A9AFB4] sm:block">FEMASS — Sistema de Requerimentos</p>
+          <p className="hidden text-xs text-gray-mid sm:block">FEMASS — Sistema de Requerimentos</p>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ export default function Navbar({ title, onMenuToggle }) {
           <button
             type="button"
             onClick={handleBellClick}
-            className="relative rounded-lg p-2 text-[#A9AFB4] hover:bg-[#E6E8E9] hover:text-slate-600"
+            className="relative rounded-lg p-2 text-gray-mid hover:bg-gray-light hover:text-slate-600"
             aria-label="Notificações"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -107,13 +107,13 @@ export default function Navbar({ title, onMenuToggle }) {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 z-40 mt-2 w-80 rounded-xl border border-[#E6E8E9] bg-white p-3 shadow-xl">
+            <div className="absolute right-0 z-40 mt-2 w-80 rounded-xl border border-gray-light bg-white p-3 shadow-xl">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-sm font-semibold text-slate-800">Atualizações</p>
-                <span className="text-xs text-[#A9AFB4]">Atualiza a cada 15s</span>
+                <span className="text-xs text-gray-mid">Atualiza a cada 15s</span>
               </div>
               {notifications.length === 0 ? (
-                <p className="rounded-lg bg-[#E6E8E9] px-3 py-3 text-sm text-[#A9AFB4]">
+                <p className="rounded-lg bg-gray-light px-3 py-3 text-sm text-gray-mid">
                   Nenhuma atualização recente.
                 </p>
               ) : (
@@ -126,7 +126,7 @@ export default function Navbar({ title, onMenuToggle }) {
                           navigate(`/requerimentos/${item.id}`)
                           setShowNotifications(false)
                         }}
-                        className="w-full rounded-lg border border-[#E6E8E9] p-3 text-left transition hover:border-primary-200 hover:bg-primary-50"
+                        className="w-full rounded-lg border border-gray-light p-3 text-left transition hover:border-primary-200 hover:bg-primary-50"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-medium text-slate-800">{item.tipoRequerimentoNome}</p>
@@ -134,7 +134,7 @@ export default function Navbar({ title, onMenuToggle }) {
                             {item.tipo}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-xs text-[#A9AFB4]">{item.status}</p>
+                        <p className="mt-0.5 text-xs text-gray-mid">{item.status}</p>
                       </button>
                     </li>
                   ))}
@@ -145,7 +145,7 @@ export default function Navbar({ title, onMenuToggle }) {
         </div>
 
         {/* Separador */}
-        <div className="h-6 w-px bg-[#E6E8E9]" />
+        <div className="h-6 w-px bg-gray-light" />
 
         {/* Avatar + nome + sair */}
         <div className="flex items-center gap-2">
@@ -154,13 +154,13 @@ export default function Navbar({ title, onMenuToggle }) {
           </div>
           <div className="hidden text-right sm:block">
             <p className="text-sm font-medium text-slate-800 leading-tight">{user?.name ?? 'Usuário'}</p>
-            <p className="text-xs text-[#A9AFB4] leading-tight">{user?.matricula ?? user?.email ?? ''}</p>
+            <p className="text-xs text-gray-mid leading-tight">{user?.matricula ?? user?.email ?? ''}</p>
           </div>
           <button
             type="button"
             onClick={handleLogout}
             title="Sair"
-            className="rounded-lg p-2 text-[#A9AFB4] hover:bg-[#E6E8E9] hover:text-red-500"
+            className="rounded-lg p-2 text-gray-mid hover:bg-gray-light hover:text-red-500"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

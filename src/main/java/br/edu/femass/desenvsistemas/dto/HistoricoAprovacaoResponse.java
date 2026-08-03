@@ -2,6 +2,7 @@ package br.edu.femass.desenvsistemas.dto;
 
 import br.edu.femass.desenvsistemas.entity.AcaoAprovacao;
 import br.edu.femass.desenvsistemas.entity.HistoricoAprovacao;
+import br.edu.femass.desenvsistemas.entity.MotivoRejeicao;
 import br.edu.femass.desenvsistemas.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,6 +25,7 @@ public class HistoricoAprovacaoResponse {
     private Role roleEtapa;
     private AcaoAprovacao acao;
     private String observacao;
+    private MotivoRejeicao motivoRejeicao;
     private LocalDateTime criadoEm;
 
     public static HistoricoAprovacaoResponse fromEntity(HistoricoAprovacao historico) {
@@ -34,6 +36,7 @@ public class HistoricoAprovacaoResponse {
                 .roleEtapa(historico.getRoleEtapa())
                 .acao(historico.getAcao())
                 .observacao(historico.getObservacao())
+                .motivoRejeicao(historico.getMotivoRejeicao())
                 .criadoEm(historico.getCriadoEm())
                 .build();
     }

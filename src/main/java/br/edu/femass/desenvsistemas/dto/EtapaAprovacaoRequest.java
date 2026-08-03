@@ -16,4 +16,6 @@ public class EtapaAprovacaoRequest {
     private Role role;
 
     private String descricao;
+
+    private Integer diasLimite;
 }

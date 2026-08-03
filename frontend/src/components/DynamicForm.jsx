@@ -1,7 +1,13 @@
+import { useState } from 'react'
+import { uploadAnexo } from '../services/anexoService'
+
 const inputClass =
   'w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
 
 export default function DynamicForm({ campos, valores, onChange, readOnly = false }) {
+  const [uploadingId, setUploadingId] = useState(null)
+  const [uploadErrors, setUploadErrors] = useState({})
+
   function handleChange(campoId, value) {
     onChange({ ...valores, [String(campoId)]: value })
   }
@@ -15,13 +21,21 @@ export default function DynamicForm({ campos, valores, onChange, readOnly = fals
     handleChange(campoId, next.join('||'))
   }
 
-  function handleFile(campoId, file) {
+  async function handleFile(campoId, file) {
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      handleChange(campoId, `${file.name}||${e.target.result}`)
+    setUploadErrors((prev) => ({ ...prev, [campoId]: '' }))
+    setUploadingId(campoId)
+    try {
+      const { url, nome } = await uploadAnexo(file)
+      handleChange(campoId, `${nome}||${url}`)
+    } catch (err) {
+      setUploadErrors((prev) => ({
+        ...prev,
+        [campoId]: err.response?.data?.message ?? 'Erro ao enviar arquivo.',
+      }))
+    } finally {
+      setUploadingId(null)
     }
-    reader.readAsDataURL(file)
   }
 
   return (
@@ -138,11 +152,14 @@ export default function DynamicForm({ campos, valores, onChange, readOnly = fals
             const stored = valores[String(campo.id)] ?? ''
             const sepIdx = stored.indexOf('||')
             const filename = sepIdx >= 0 ? stored.slice(0, sepIdx) : ''
-            const dataUrl = sepIdx >= 0 ? stored.slice(sepIdx + 2) : ''
+            const fileUrl = sepIdx >= 0 ? stored.slice(sepIdx + 2) : ''
+            const isUploading = uploadingId === campo.id
             return readOnly ? (
-              dataUrl ? (
+              fileUrl ? (
                 <a
-                  href={dataUrl}
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
                   download={filename}
                   className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
@@ -158,11 +175,16 @@ export default function DynamicForm({ campos, valores, onChange, readOnly = fals
               <div className="space-y-2">
                 <input
                   type="file"
+                  disabled={isUploading}
                   onChange={(e) => handleFile(campo.id, e.target.files?.[0])}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-700 hover:file:bg-primary-100"
+                  className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-primary-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-700 hover:file:bg-primary-100 disabled:opacity-50"
                 />
-                {filename && (
-                  <p className="text-xs text-slate-500">Arquivo selecionado: <span className="font-medium">{filename}</span></p>
+                {isUploading && <p className="text-xs text-primary-600">Enviando arquivo...</p>}
+                {!isUploading && filename && (
+                  <p className="text-xs text-slate-500">Arquivo enviado: <span className="font-medium">{filename}</span></p>
+                )}
+                {uploadErrors[campo.id] && (
+                  <p className="text-xs text-red-600">{uploadErrors[campo.id]}</p>
                 )}
               </div>
             )

@@ -1,29 +1,45 @@
 @import "tailwindcss";
 
 @theme {
-  /* Azul principal */
-  --color-primary-50:  #ebf3fb;
-  --color-primary-100: #ccdff5;
-  --color-primary-200: #99bfeb;
-  --color-primary-500: #0e63b3;
+  /* Azul institucional — cor da marca FeMASS */
+  --color-primary-50:  #eaf3fb;
+  --color-primary-100: #cfe3f6;
+  --color-primary-200: #9cc5ec;
+  --color-primary-500: #1a6fc4;
   --color-primary-600: #0e63b3;
   --color-primary-700: #16508a;
 
-  /* Cinzas do sistema */
-  --color-gray-light: #e6e8e9;
-  --color-gray-mid:   #a9afb4;
+  /* Prata/cinza metálico — acento secundário da marca FeMASS */
+  --color-accent-50:  #f4f5f6;
+  --color-accent-100: #e3e5e7;
+  --color-accent-500: #9aa1a8;
+  --color-accent-600: #767d84;
+
+  /* Cinzas neutros do sistema */
+  --color-gray-light: #e4e4e2;
+  --color-gray-mid:   #8c8c86;
 
   /* Sidebar: branco */
   --color-sidebar:       #ffffff;
-  --color-sidebar-hover: #e6e8e9;
+  --color-sidebar-hover: #eaf3fb;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Cantos retos/mínimos — estilo portal acadêmico */
+  --radius-lg:  0.25rem;
+  --radius-xl:  0.25rem;
+  --radius-2xl: 0.375rem;
+
+  /* Sombras discretas */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 1px 3px 0 rgb(0 0 0 / 0.07);
+  --shadow-xl: 0 2px 6px 0 rgb(0 0 0 / 0.08);
 }
 
 @layer base {
   body {
     @apply antialiased;
-    background-color: #e6e8e9;
+    background-color: var(--color-gray-light);
     color: #1e293b;
     font-family: var(--font-sans);
   }

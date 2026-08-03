@@ -89,8 +89,9 @@ const PERFIS = [
     corIcone: 'bg-slate-100 text-slate-600',
     acoes: [
       'Acesso completo ao sistema',
-      'Gerenciar usuários e cursos',
-      'Atribuir responsáveis (professor, coord., diretor) a cada curso',
+      'Gerenciar usuários, cursos e disciplinas',
+      'Atribuir responsáveis (coordenador, secretário, diretor) a cada curso',
+      'Atribuir o professor responsável por cada disciplina',
       'Editar qualquer requerimento',
     ],
   },
@@ -111,7 +112,11 @@ const DICAS = [
   },
   {
     titulo: 'Aprovação por curso',
-    texto: 'O requerimento vai para os aprovadores designados ao seu curso. Se você mudou de curso, entre em contato com a secretaria.',
+    texto: 'Etapas de Secretário, Coordenador e Diretor vão para os responsáveis designados ao seu curso. Se você mudou de curso, entre em contato com a secretaria.',
+  },
+  {
+    titulo: 'Aprovação por disciplina',
+    texto: 'A etapa de Professor é sempre resolvida pela disciplina escolhida ao criar o requerimento — cada disciplina tem um professor responsável específico.',
   },
 ]
 

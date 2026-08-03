@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { formatValor } from '../components/DynamicForm'
 import StatusBadge from '../components/StatusBadge'
 import { getStoredUser } from '../services/authService'
 import {
+  MOTIVOS_REJEICAO,
   aprovarRequerimento,
   buscarRequerimento,
   buscarTipo,
@@ -17,15 +19,21 @@ export default function RequerimentoDetalhePage() {
   const [requerimento, setRequerimento] = useState(null)
   const [tipo, setTipo] = useState(null)
   const [observacao, setObservacao] = useState('')
+  const [motivoRejeicao, setMotivoRejeicao] = useState('')
+  const [pendingAcao, setPendingAcao] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
+  const [prazoProximo, setPrazoProximo] = useState(false)
 
   async function load() {
     try {
       setLoading(true)
       const data = await buscarRequerimento(id)
       setRequerimento(data)
+      setPrazoProximo(
+        Boolean(data.prazoEm) && new Date(data.prazoEm).getTime() - Date.now() < 2 * 24 * 60 * 60 * 1000,
+      )
       const tipoData = await buscarTipo(data.tipoRequerimentoId)
       setTipo(tipoData)
     } catch {
@@ -39,12 +47,19 @@ export default function RequerimentoDetalhePage() {
     load()
   }, [id])
 
-  async function handleAprovacao(acao) {
+  async function confirmarAprovacao() {
+    const acao = pendingAcao
     setActionLoading(true)
     setError('')
     try {
-      await aprovarRequerimento(id, { acao, observacao })
+      await aprovarRequerimento(id, {
+        acao,
+        observacao,
+        motivoRejeicao: acao === 'REJEITADO' ? motivoRejeicao : undefined,
+      })
       setObservacao('')
+      setMotivoRejeicao('')
+      setPendingAcao(null)
       await load()
     } catch (err) {
       setError(err.response?.data?.message ?? 'Erro ao registrar aprovação.')
@@ -116,6 +131,14 @@ export default function RequerimentoDetalhePage() {
               Solicitante: {requerimento.solicitanteNome} ·{' '}
               {new Date(requerimento.criadoEm).toLocaleString('pt-BR')}
             </p>
+            {requerimento.disciplinaNome && (
+              <p className="mt-1 text-sm text-slate-600">Disciplina: {requerimento.disciplinaNome}</p>
+            )}
+            {requerimento.status === 'EM_APROVACAO' && requerimento.prazoEm && (
+              <p className={`mt-1 text-sm font-medium ${prazoProximo ? 'text-red-600' : 'text-slate-600'}`}>
+                Prazo para aprovação: {new Date(requerimento.prazoEm).toLocaleDateString('pt-BR')}
+              </p>
+            )}
           </div>
           <StatusBadge status={requerimento.status} />
         </div>
@@ -129,14 +152,37 @@ export default function RequerimentoDetalhePage() {
         <section className="mb-6">
           <h3 className="mb-3 font-semibold text-slate-800">Respostas do formulário</h3>
           <div className="space-y-3">
-            {tipo.campos.map((campo) => (
-              <div key={campo.id} className="rounded-lg bg-slate-50 px-4 py-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{campo.label}</p>
-                <p className="mt-1 text-sm text-slate-800">
-                  {formatValor(campo, requerimento.valores[String(campo.id)])}
-                </p>
-              </div>
-            ))}
+            {tipo.campos.map((campo) => {
+              const valor = requerimento.valores[String(campo.id)]
+              const sepIdx = campo.tipo === 'ANEXO' && valor ? valor.indexOf('||') : -1
+              const anexoNome = sepIdx >= 0 ? valor.slice(0, sepIdx) : ''
+              const anexoUrl = sepIdx >= 0 ? valor.slice(sepIdx + 2) : ''
+              return (
+                <div key={campo.id} className="rounded-lg bg-slate-50 px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{campo.label}</p>
+                  {campo.tipo === 'ANEXO' ? (
+                    anexoUrl ? (
+                      <a
+                        href={anexoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={anexoNome}
+                        className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                        </svg>
+                        {anexoNome || 'Baixar anexo'}
+                      </a>
+                    ) : (
+                      <p className="mt-1 text-sm text-slate-400">Nenhum arquivo anexado</p>
+                    )
+                  ) : (
+                    <p className="mt-1 text-sm text-slate-800">{formatValor(campo, valor)}</p>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </section>
 
@@ -158,6 +204,11 @@ export default function RequerimentoDetalhePage() {
                   sublabel = (
                     <>
                       <p className={`text-xs ${approved ? 'text-emerald-600' : 'text-red-500'}`}>{approved ? 'Aprovado' : 'Rejeitado'}</p>
+                      {concluida.motivoRejeicao && (
+                        <p className="mt-1 text-xs font-medium text-red-600">
+                          {MOTIVOS_REJEICAO.find((m) => m.value === concluida.motivoRejeicao)?.label ?? concluida.motivoRejeicao}
+                        </p>
+                      )}
                       {concluida.observacao && <p className="mt-1 text-xs italic text-slate-600">{concluida.observacao}</p>}
                     </>
                   )
@@ -205,22 +256,76 @@ export default function RequerimentoDetalhePage() {
               <button
                 type="button"
                 disabled={actionLoading}
-                onClick={() => handleAprovacao('APROVADO')}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                onClick={() => setPendingAcao('APROVADO')}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 Aprovar
               </button>
               <button
                 type="button"
                 disabled={actionLoading}
-                onClick={() => handleAprovacao('REJEITADO')}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                onClick={() => setPendingAcao('REJEITADO')}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
                 Rejeitar
               </button>
             </div>
           </section>
         )}
+
+        <ConfirmDialog
+          open={pendingAcao !== null}
+          title={pendingAcao === 'REJEITADO' ? 'Rejeitar requerimento?' : 'Aprovar requerimento?'}
+          message={
+            pendingAcao === 'REJEITADO'
+              ? 'Tem certeza que deseja rejeitar este requerimento? O solicitante será notificado por e-mail.'
+              : 'Tem certeza que deseja aprovar este requerimento?'
+          }
+          confirmLabel={pendingAcao === 'REJEITADO' ? 'Rejeitar' : 'Aprovar'}
+          variant={pendingAcao === 'REJEITADO' ? 'danger' : 'success'}
+          confirmDisabled={
+            actionLoading ||
+            (pendingAcao === 'REJEITADO' &&
+              (!motivoRejeicao || (motivoRejeicao === 'OUTRO' && !observacao.trim())))
+          }
+          onConfirm={confirmarAprovacao}
+          onCancel={() => setPendingAcao(null)}
+        >
+          {pendingAcao === 'REJEITADO' && (
+            <div className="space-y-3">
+              <label className="block text-left">
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  Motivo da rejeição
+                </span>
+                <select
+                  value={motivoRejeicao}
+                  onChange={(e) => setMotivoRejeicao(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm"
+                >
+                  <option value="">Selecione...</option>
+                  {MOTIVOS_REJEICAO.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </label>
+              {motivoRejeicao === 'OUTRO' && (
+                <label className="block text-left">
+                  <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                    Descreva o motivo
+                  </span>
+                  <textarea
+                    rows={3}
+                    autoFocus
+                    value={observacao}
+                    onChange={(e) => setObservacao(e.target.value)}
+                    placeholder="Explique o motivo da rejeição"
+                    className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm"
+                  />
+                </label>
+              )}
+            </div>
+          )}
+        </ConfirmDialog>
 
         {podeCancelar && (
           <button

@@ -4,7 +4,7 @@ import { getStoredUser } from '../services/authService'
 import { listarCursos, criarCurso, atualizarCurso, deletarCurso, atribuirResponsavel, removerResponsavel } from '../services/cursosService'
 import { listarUsuarios } from '../services/userService'
 
-const APPROVER_ROLES = ['PROFESSOR', 'SECRETARIO', 'COORDENADOR', 'DIRETOR']
+const APPROVER_ROLES = ['SECRETARIO', 'COORDENADOR', 'DIRETOR']
 
 export default function CursosPage() {
   const user = getStoredUser()
@@ -94,7 +94,11 @@ export default function CursosPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-slate-800">Cursos</h2>
-        <p className="text-sm text-slate-500">Gerencie os cursos e seus responsáveis por etapa de aprovação.</p>
+        <p className="text-sm text-slate-500">
+          Gerencie os cursos e seus responsáveis por etapa de aprovação (Secretário, Coordenador, Diretor).
+          Professores não são mais atribuídos por curso — cadastre-os por disciplina na tela{' '}
+          <strong>Disciplinas</strong>.
+        </p>
       </div>
 
       {error && (

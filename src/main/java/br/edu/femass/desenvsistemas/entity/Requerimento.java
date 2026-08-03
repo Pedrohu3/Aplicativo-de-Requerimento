@@ -49,6 +49,10 @@ public class Requerimento {
     @JoinColumn(name = "curso_id")
     private Curso curso;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "disciplina_id")
+    private Disciplina disciplina;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
@@ -63,6 +67,12 @@ public class Requerimento {
     private LocalDateTime criadoEm = LocalDateTime.now();
 
     private LocalDateTime atualizadoEm;
+
+    private LocalDateTime prazoEm;
+
+    @Column(nullable = false, columnDefinition = "boolean not null default false")
+    @Builder.Default
+    private boolean lembreteEnviado = false;
 
     @OneToMany(mappedBy = "requerimento", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

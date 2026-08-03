@@ -28,10 +28,10 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
-      <div className="rounded-2xl border border-[#E6E8E9] bg-white p-8 shadow-lg">
+      <div className="rounded-2xl border border-gray-light bg-white p-8 shadow-lg">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-800">Entrar</h1>
-          <p className="mt-1 text-sm text-[#A9AFB4]">Use seu e-mail ou matrícula para acessar</p>
+          <p className="mt-1 text-sm text-gray-mid">Use seu e-mail ou matrícula para acessar</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

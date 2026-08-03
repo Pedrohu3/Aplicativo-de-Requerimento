@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DynamicForm from '../components/DynamicForm'
 import { getStoredUser } from '../services/authService'
+import { listarDisciplinas } from '../services/disciplinasService'
 import {
   buscarTipo,
   criarRequerimento,
@@ -14,10 +15,21 @@ export default function NovoRequerimentoPage() {
   const [tipoId, setTipoId] = useState('')
   const [tipo, setTipo] = useState(null)
   const [valores, setValores] = useState({})
+  const [disciplinas, setDisciplinas] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
+
+  const exigeDisciplina = tipo?.escopo === 'DISCIPLINA'
+  const campoDisciplina = tipo?.campos.find((c) => c.fixo && c.label === 'Disciplina')
+  const disciplinaNomeSelecionado = campoDisciplina ? valores[String(campoDisciplina.id)] : null
+  const disciplinaId = disciplinaNomeSelecionado
+    ? disciplinas.find((d) => d.nome === disciplinaNomeSelecionado)?.id ?? null
+    : null
+  const camposParaExibir = tipo?.campos.map((c) =>
+    c === campoDisciplina ? { ...c, opcoes: disciplinas.map((d) => d.nome) } : c,
+  )
 
   useEffect(() => {
     listarTiposAtivos()
@@ -30,6 +42,7 @@ export default function NovoRequerimentoPage() {
     if (!tipoId) {
       setTipo(null)
       setValores({})
+      setDisciplinas([])
       return
     }
     buscarTipo(tipoId)
@@ -43,6 +56,14 @@ export default function NovoRequerimentoPage() {
           else if (campo.label === 'Curso') prefilled[String(campo.id)] = user?.cursoNome ?? ''
         })
         setValores(prefilled)
+
+        if (data.escopo === 'DISCIPLINA' && user?.cursoId) {
+          listarDisciplinas(user.cursoId)
+            .then(setDisciplinas)
+            .catch(() => setError('Erro ao carregar disciplinas.'))
+        } else {
+          setDisciplinas([])
+        }
       })
       .catch(() => setError('Erro ao carregar formulário.'))
   }, [tipoId])
@@ -55,6 +76,10 @@ export default function NovoRequerimentoPage() {
   }, [toast])
 
   async function handleSubmit(enviar) {
+    if (enviar && exigeDisciplina && !disciplinaId) {
+      setError('Selecione a disciplina para enviar este requerimento.')
+      return
+    }
     setError('')
     setSubmitting(true)
     try {
@@ -62,6 +87,7 @@ export default function NovoRequerimentoPage() {
         tipoRequerimentoId: Number(tipoId),
         valores,
         enviar,
+        disciplinaId: disciplinaId ? Number(disciplinaId) : null,
       })
 
       if (enviar) {
@@ -137,7 +163,20 @@ export default function NovoRequerimentoPage() {
                     <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Em preenchimento</span>
                   </div>
 
-                  <DynamicForm campos={tipo.campos} valores={valores} onChange={setValores} />
+                  {exigeDisciplina && disciplinas.length === 0 && (
+                    <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      Nenhuma disciplina cadastrada para o seu curso. Peça a um administrador para cadastrar.
+                    </p>
+                  )}
+
+                  <DynamicForm campos={camposParaExibir} valores={valores} onChange={setValores} />
+
+                  {exigeDisciplina && disciplinas.length > 0 && (
+                    <p className="mt-3 text-xs text-slate-500">
+                      Professor responsável por disciplina:{' '}
+                      {disciplinas.map((d) => `${d.nome} — ${d.professorNome ?? 'sem professor definido'}`).join(' · ')}
+                    </p>
+                  )}
 
                   <div className="mt-6 flex flex-wrap gap-3">
                     <button
@@ -150,9 +189,9 @@ export default function NovoRequerimentoPage() {
                     </button>
                     <button
                       type="button"
-                      disabled={submitting}
+                      disabled={submitting || (exigeDisciplina && !disciplinaId)}
                       onClick={() => handleSubmit(true)}
-                      className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
+                      className="rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
                     >
                       Enviar para aprovação
                     </button>
