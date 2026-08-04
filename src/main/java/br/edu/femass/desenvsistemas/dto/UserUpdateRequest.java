@@ -3,10 +3,12 @@ package br.edu.femass.desenvsistemas.dto;
 import br.edu.femass.desenvsistemas.entity.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.Set;
 
 @Getter
 @Setter
@@ -23,8 +25,8 @@ public class UserUpdateRequest {
     @Size(min = 6, message = "A senha deve ter no mínimo 6 caracteres")
     private String senha;
 
-    @NotNull(message = "A role é obrigatória")
-    private Role role;
+    @NotEmpty(message = "Informe ao menos uma role")
+    private Set<Role> roles;
 
     private Boolean admin;
 

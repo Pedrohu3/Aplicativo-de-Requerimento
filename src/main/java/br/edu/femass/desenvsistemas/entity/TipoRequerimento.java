@@ -1,7 +1,9 @@
 package br.edu.femass.desenvsistemas.entity;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -22,7 +24,9 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "tipos_requerimento")
@@ -69,4 +73,12 @@ public class TipoRequerimento {
     @OrderBy("ordem ASC")
     @Builder.Default
     private List<EtapaAprovacao> etapas = new ArrayList<>();
+
+    /** Roles que podem solicitar este tipo. Vazio = liberado para todas as roles. */
+    @ElementCollection
+    @CollectionTable(name = "tipo_requerimento_roles", joinColumns = @JoinColumn(name = "tipo_requerimento_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role")
+    @Builder.Default
+    private Set<Role> rolesPermitidas = new HashSet<>();
 }

@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DynamicForm from '../components/DynamicForm'
-import { getStoredUser } from '../services/authService'
+import { getStoredUser, isAdmin } from '../services/authService'
 import { listarDisciplinas } from '../services/disciplinasService'
 import {
   buscarTipo,
   criarRequerimento,
   listarTiposAtivos,
 } from '../services/requerimentoService'
+
+function podeSolicitar(tipo, user) {
+  if (!tipo.rolesPermitidas?.length) return true
+  if (isAdmin(user)) return true
+  return tipo.rolesPermitidas.some((r) => user?.roles?.includes(r))
+}
 
 export default function NovoRequerimentoPage() {
   const navigate = useNavigate()
@@ -32,8 +38,9 @@ export default function NovoRequerimentoPage() {
   )
 
   useEffect(() => {
+    const user = getStoredUser()
     listarTiposAtivos()
-      .then(setTipos)
+      .then((data) => setTipos(data.filter((t) => podeSolicitar(t, user))))
       .catch(() => setError('Erro ao carregar tipos disponíveis.'))
       .finally(() => setLoading(false))
   }, [])
@@ -58,6 +65,12 @@ export default function NovoRequerimentoPage() {
         setValores(prefilled)
 
         if (data.escopo === 'DISCIPLINA' && user?.cursoId) {
+          // FUTURA IMPLEMENTAÇÃO: isso lista TODAS as disciplinas do curso, não só as que o
+          // aluno está matriculado no período atual — porque hoje não existe matrícula por
+          // disciplina no sistema (ver comentário detalhado em
+          // RequerimentoService.vincularDisciplina). Quando essa integração com o WebAcademico
+          // existir, troque para um endpoint tipo GET /api/disciplinas/minhas que devolve só as
+          // disciplinas em que o aluno logado está de fato matriculado.
           listarDisciplinas(user.cursoId)
             .then(setDisciplinas)
             .catch(() => setError('Erro ao carregar disciplinas.'))

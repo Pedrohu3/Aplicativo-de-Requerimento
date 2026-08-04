@@ -74,6 +74,9 @@ export default function MeusRequerimentosPage() {
                       {item.etapaAtualDescricao ? ` — ${item.etapaAtualDescricao}` : ''}
                     </p>
                   )}
+                  {item.status === 'AJUSTES_SOLICITADOS' && (
+                    <p className="text-xs font-medium text-orange-700">Precisa de ajustes — edite e reenvie</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {item.status === 'RASCUNHO' && (
@@ -84,6 +87,14 @@ export default function MeusRequerimentosPage() {
                     >
                       Enviar
                     </button>
+                  )}
+                  {item.status === 'AJUSTES_SOLICITADOS' && (
+                    <Link
+                      to={`/requerimentos/${item.id}/editar`}
+                      className="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600"
+                    >
+                      Editar e reenviar
+                    </Link>
                   )}
                   <Link
                     to={`/requerimentos/${item.id}`}

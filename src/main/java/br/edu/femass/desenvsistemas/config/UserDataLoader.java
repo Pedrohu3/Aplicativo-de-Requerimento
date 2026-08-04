@@ -32,7 +32,7 @@ public class UserDataLoader implements CommandLineRunner {
                     .nome(nome)
                     .email(email)
                     .senha(passwordEncoder.encode(senha))
-                    .role(role)
+                    .roles(java.util.Set.of(role))
                     .build());
         }
     }

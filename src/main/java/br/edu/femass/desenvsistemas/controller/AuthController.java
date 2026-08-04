@@ -27,7 +27,8 @@ public class AuthController {
                     Map<String, Object> body = new HashMap<>();
                     body.put("name", dto.getNome());
                     body.put("email", dto.getEmail());
-                    body.put("role", dto.getRole().name());
+                    body.put("roles", dto.getRoles());
+                    body.put("admin", dto.isAdmin());
                     return body;
                 })
                 .orElseGet(() -> {

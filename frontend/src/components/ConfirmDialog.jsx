@@ -17,7 +17,9 @@ export default function ConfirmDialog({
       ? 'bg-red-600 hover:bg-red-700'
       : variant === 'success'
         ? 'bg-emerald-600 hover:bg-emerald-700'
-        : 'bg-primary-600 hover:bg-primary-700'
+        : variant === 'warning'
+          ? 'bg-orange-500 hover:bg-orange-600'
+          : 'bg-primary-600 hover:bg-primary-700'
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4">

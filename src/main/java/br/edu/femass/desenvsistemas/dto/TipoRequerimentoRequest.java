@@ -1,6 +1,7 @@
 package br.edu.femass.desenvsistemas.dto;
 
 import br.edu.femass.desenvsistemas.entity.EscopoRequerimento;
+import br.edu.femass.desenvsistemas.entity.Role;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -10,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -32,4 +34,7 @@ public class TipoRequerimentoRequest {
     @NotEmpty(message = "Informe ao menos uma etapa no fluxo de aprovação")
     @Valid
     private List<EtapaAprovacaoRequest> etapas;
+
+    /** Roles que podem solicitar este tipo. Vazio/nulo = liberado para todas as roles. */
+    private Set<Role> rolesPermitidas;
 }

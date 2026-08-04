@@ -92,6 +92,7 @@ export const ROLES = [
 export const STATUS_LABELS = {
   RASCUNHO: 'Rascunho',
   EM_APROVACAO: 'Em aprovação',
+  AJUSTES_SOLICITADOS: 'Ajustes solicitados',
   APROVADO: 'Aprovado',
   REJEITADO: 'Rejeitado',
   CANCELADO: 'Cancelado',
@@ -115,6 +116,7 @@ export const MOTIVOS_REJEICAO = [
 export const STATUS_COLORS = {
   RASCUNHO: 'border-slate-200 bg-slate-100 text-slate-700',
   EM_APROVACAO: 'border-amber-200 bg-amber-100 text-amber-800',
+  AJUSTES_SOLICITADOS: 'border-orange-200 bg-orange-100 text-orange-800',
   APROVADO: 'border-emerald-200 bg-emerald-100 text-emerald-800',
   REJEITADO: 'border-red-200 bg-red-100 text-red-800',
   CANCELADO: 'border-gray-200 bg-gray-100 text-gray-600',

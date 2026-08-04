@@ -70,6 +70,23 @@ public class EmailService {
     }
 
     @Async
+    public void enviarAjustesSolicitados(String emailAluno, String nomeAluno,
+                                         String tipoRequerimento, Long protocolo, String observacao) {
+        enviar(
+                emailAluno,
+                "Ajustes solicitados – " + tipoRequerimento,
+                html(
+                        "Seu requerimento precisa de ajustes",
+                        nomeAluno,
+                        "Seu requerimento de <strong>" + tipoRequerimento + "</strong> (protocolo #" + protocolo
+                                + ") precisa de correções antes de continuar a aprovação.",
+                        "O que precisa ser ajustado: <strong>" + observacao + "</strong>",
+                        "Acesse o sistema, corrija o que foi apontado e reenvie o requerimento."
+                )
+        );
+    }
+
+    @Async
     public void enviarAvisoPrazo(String emailAprovador, String nomeAprovador,
                                  String nomeSolicitante, String tipoRequerimento,
                                  Long protocolo, LocalDateTime prazoEm) {

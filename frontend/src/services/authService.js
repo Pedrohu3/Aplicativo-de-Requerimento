@@ -21,6 +21,17 @@ export function isAuthenticated() {
   return Boolean(localStorage.getItem(AUTH_TOKEN_KEY))
 }
 
+// Admin "lógico": vale tanto para quem tem a role ADMIN quanto para quem
+// recebeu a flag admin combinada com outra role (ex.: professor + admin).
+export function isAdmin(user) {
+  return Boolean(user?.admin) || Boolean(user?.roles?.includes('ADMIN'))
+}
+
+export function hasAnyRole(user, roles) {
+  if (!roles || roles.length === 0) return true
+  return roles.some((r) => (r === 'ADMIN' ? isAdmin(user) : Boolean(user?.roles?.includes(r))))
+}
+
 export async function login(email, password) {
   const { data } = await api.post('/auth/login', { email, senha: password })
 
@@ -28,7 +39,8 @@ export async function login(email, password) {
     name: data.user?.nome ?? email.split('@')[0],
     matricula: data.user?.matricula ?? null,
     email: data.user?.email ?? email,
-    role: data.user?.role ?? null,
+    roles: data.user?.roles ?? [],
+    admin: data.user?.admin ?? false,
     cursoId: data.user?.cursoId ?? null,
     cursoNome: data.user?.cursoNome ?? null,
   }
@@ -45,7 +57,7 @@ export async function register(nome, matricula, email, password, cursoId) {
     matricula,
     email,
     senha: password,
-    role: 'ALUNO',
+    roles: ['ALUNO'],
     cursoId: cursoId || null,
   })
 
@@ -53,7 +65,8 @@ export async function register(nome, matricula, email, password, cursoId) {
     name: data.user?.nome ?? nome,
     matricula: data.user?.matricula ?? matricula,
     email: data.user?.email ?? email,
-    role: data.user?.role ?? 'ALUNO',
+    roles: data.user?.roles ?? ['ALUNO'],
+    admin: data.user?.admin ?? false,
     cursoId: data.user?.cursoId ?? cursoId ?? null,
     cursoNome: data.user?.cursoNome ?? null,
   }

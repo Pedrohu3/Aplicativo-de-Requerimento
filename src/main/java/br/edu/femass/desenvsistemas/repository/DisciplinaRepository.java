@@ -8,4 +8,6 @@ import java.util.List;
 public interface DisciplinaRepository extends JpaRepository<Disciplina, Long> {
 
     List<Disciplina> findByCursoIdOrderByNomeAsc(Long cursoId);
+
+    List<Disciplina> findByProfessorId(Long professorId);
 }

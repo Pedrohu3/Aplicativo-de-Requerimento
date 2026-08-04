@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -52,20 +53,20 @@ public class RequerimentoService {
     @Transactional(readOnly = true)
     public List<RequerimentoResponse> listarPendentesAprovacao() {
         User usuario = authHelper.getCurrentUser();
-        if (usuario.getRole() == Role.ALUNO) {
+        if (usuario.getRoles().contains(Role.ALUNO)) {
             return List.of();
         }
 
         List<Requerimento> pendentes;
 
-        if (isAdmin(usuario)) {
+        if (usuario.isEffectiveAdmin()) {
             pendentes = requerimentoRepository.findAll().stream()
                     .filter(r -> r.getStatus() == StatusRequerimento.EM_APROVACAO)
                     .toList();
         } else {
-            pendentes = requerimentoRepository.findPendentesPorRole(
+            pendentes = requerimentoRepository.findPendentesPorRoles(
                     StatusRequerimento.EM_APROVACAO,
-                    usuario.getRole()
+                    usuario.getRoles()
             ).stream()
                     .filter(r -> calcularPodeAprovar(r, usuario))
                     .toList();
@@ -96,6 +97,7 @@ public class RequerimentoService {
         if (!Boolean.TRUE.equals(tipo.getAtivo())) {
             throw new BusinessException("Este tipo de requerimento está inativo");
         }
+        validarPermissaoSolicitacao(tipo, solicitante);
 
         validarValores(tipo, request.getValores(), Boolean.TRUE.equals(request.getEnviar()));
         Disciplina disciplina = vincularDisciplina(tipo, solicitante, request.getDisciplinaId());
@@ -134,8 +136,9 @@ public class RequerimentoService {
         if (!requerimento.getSolicitante().getId().equals(usuario.getId())) {
             throw new ForbiddenException("Apenas o solicitante pode enviar este requerimento");
         }
-        if (requerimento.getStatus() != StatusRequerimento.RASCUNHO) {
-            throw new BusinessException("Somente requerimentos em rascunho podem ser enviados");
+        StatusRequerimento statusAnterior = requerimento.getStatus();
+        if (statusAnterior != StatusRequerimento.RASCUNHO && statusAnterior != StatusRequerimento.AJUSTES_SOLICITADOS) {
+            throw new BusinessException("Somente requerimentos em rascunho ou com ajustes solicitados podem ser enviados");
         }
 
         Map<String, String> valores = requerimento.getValores().stream()
@@ -146,7 +149,11 @@ public class RequerimentoService {
 
         validarValores(requerimento.getTipoRequerimento(), valores, true);
         requerimento.setStatus(StatusRequerimento.EM_APROVACAO);
-        requerimento.setEtapaAtual(0);
+        if (statusAnterior == StatusRequerimento.RASCUNHO) {
+            requerimento.setEtapaAtual(0);
+        }
+        // Reenvio após ajustes solicitados mantém a etapaAtual: volta direto para
+        // quem pediu o ajuste, sem reiniciar o fluxo de aprovação do zero.
         requerimento.setCurso(resolverCurso(requerimento.getTipoRequerimento(), requerimento.getSolicitante()));
         requerimento.setAtualizadoEm(LocalDateTime.now());
         finalizarEnvio(requerimento, requerimento.getTipoRequerimento());
@@ -184,6 +191,21 @@ public class RequerimentoService {
             return RequerimentoResponse.fromEntity(rejeitado);
         }
 
+        if (request.getAcao() == AcaoAprovacao.AJUSTES_SOLICITADOS) {
+            validarObservacaoAjustes(request);
+            requerimento.setStatus(StatusRequerimento.AJUSTES_SOLICITADOS);
+            requerimento.setAtualizadoEm(LocalDateTime.now());
+            registrarHistorico(requerimento, aprovador, etapaAtual, request);
+            // Não avança etapaAtual: ao reenviar, o requerimento volta direto pra
+            // quem pediu o ajuste, sem reiniciar o fluxo de aprovação.
+            atualizarPrazo(requerimento, requerimento.getTipoRequerimento());
+            Requerimento salvo = requerimentoRepository.save(requerimento);
+            emailService.enviarAjustesSolicitados(
+                    salvo.getSolicitante().getEmail(), salvo.getSolicitante().getNome(),
+                    salvo.getTipoRequerimento().getNome(), salvo.getId(), request.getObservacao());
+            return RequerimentoResponse.fromEntity(salvo);
+        }
+
         int proximaEtapa = requerimento.getEtapaAtual() + 1;
         List<EtapaAprovacao> etapas = etapasOrdenadas(requerimento.getTipoRequerimento());
         boolean ultimaEtapa = proximaEtapa >= etapas.size();
@@ -214,11 +236,14 @@ public class RequerimentoService {
     @Transactional
     public RequerimentoResponse atualizar(Long id, RequerimentoRequest request) {
         User usuario = authHelper.getCurrentUser();
-        if (!isAdmin(usuario)) {
-            throw new ForbiddenException("Apenas administradores podem editar requerimentos");
+        Requerimento requerimento = getRequerimento(id);
+
+        boolean donoCorrigindo = requerimento.getSolicitante().getId().equals(usuario.getId())
+                && requerimento.getStatus() == StatusRequerimento.AJUSTES_SOLICITADOS;
+        if (!usuario.isEffectiveAdmin() && !donoCorrigindo) {
+            throw new ForbiddenException("Você não tem permissão para editar este requerimento");
         }
 
-        Requerimento requerimento = getRequerimento(id);
         TipoRequerimento tipo = requerimento.getTipoRequerimento();
 
         requerimento.getValores().clear();
@@ -234,7 +259,7 @@ public class RequerimentoService {
         User usuario = authHelper.getCurrentUser();
 
         if (!requerimento.getSolicitante().getId().equals(usuario.getId())
-                && !isAdmin(usuario)) {
+                && !usuario.isEffectiveAdmin()) {
             throw new ForbiddenException("Sem permissão para cancelar este requerimento");
         }
 
@@ -252,6 +277,17 @@ public class RequerimentoService {
     private Requerimento getRequerimento(Long id) {
         return requerimentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Requerimento não encontrado: " + id));
+    }
+
+    private void validarPermissaoSolicitacao(TipoRequerimento tipo, User solicitante) {
+        Set<Role> rolesPermitidas = tipo.getRolesPermitidas();
+        if (rolesPermitidas.isEmpty() || solicitante.isEffectiveAdmin()) {
+            return;
+        }
+        boolean permitido = rolesPermitidas.stream().anyMatch(solicitante.getRoles()::contains);
+        if (!permitido) {
+            throw new ForbiddenException("Seu perfil não pode solicitar este tipo de requerimento");
+        }
     }
 
     private void validarValores(TipoRequerimento tipo, Map<String, String> valores, boolean enviar) {
@@ -272,6 +308,12 @@ public class RequerimentoService {
         }
         if (request.getMotivoRejeicao() == MotivoRejeicao.OUTRO && !StringUtils.hasText(request.getObservacao())) {
             throw new BusinessException("Descreva o motivo da rejeição no campo de observação");
+        }
+    }
+
+    private void validarObservacaoAjustes(AprovacaoRequest request) {
+        if (!StringUtils.hasText(request.getObservacao())) {
+            throw new BusinessException("Descreva o que precisa ser ajustado no requerimento");
         }
     }
 
@@ -319,6 +361,37 @@ public class RequerimentoService {
         if (cursoSolicitante == null || !disciplina.getCurso().getId().equals(cursoSolicitante.getId())) {
             throw new BusinessException("A disciplina selecionada não pertence ao seu curso");
         }
+
+        // FUTURA IMPLEMENTAÇÃO — matrícula real por disciplina (integração com o WebAcademico):
+        //
+        // Hoje esta validação só confere se a disciplina pertence ao CURSO do aluno — ou seja,
+        // qualquer aluno do curso pode abrir requerimento para QUALQUER disciplina do curso,
+        // mesmo uma que ele nunca cursou ou não está matriculado no período atual. Isso é
+        // aceitável apenas enquanto os dados são mantidos manualmente nas telas de admin.
+        //
+        // Para uso real pela universidade, a matrícula do aluno em disciplinas específicas (por
+        // período/semestre) precisa vir do sistema acadêmico oficial (WebAcademico), e a validação
+        // aqui deve restringir à disciplina em que o aluno está de fato matriculado no período
+        // vigente. Passos sugeridos:
+        //
+        // 1. Nova entidade `MatriculaDisciplina` (tabela `matriculas_disciplina`): aluno_id,
+        //    disciplina_id, periodo (ex.: "2026.1"), status (ex.: MATRICULADO/TRANCADO/CONCLUIDO).
+        //    Não reaproveitar o campo `User.matricula` — esse já é o número de matrícula do aluno
+        //    (RA), um conceito diferente de "matrícula em uma disciplina".
+        // 2. Essa tabela deve ser POPULADA por uma sincronização com o WebAcademico, não por CRUD
+        //    manual no admin — ex.: um job agendado (@Scheduled, como o PrazoAprovacaoScheduler) ou
+        //    um endpoint de importação que consome a API/extrato do WebAcademico e faz upsert dos
+        //    registros de matrícula a cada período.
+        // 3. Adicionar `MatriculaDisciplinaRepository.existsByAlunoIdAndDisciplinaIdAndPeriodo(...)`
+        //    (ou equivalente "matrícula ativa no período atual") e injetar aqui.
+        // 4. Trocar/completar a validação abaixo por algo como:
+        //      if (!matriculaRepository.existsByAlunoIdAndDisciplinaIdAndAtiva(solicitante.getId(), disciplina.getId())) {
+        //          throw new BusinessException("Você não está matriculado nesta disciplina no período atual");
+        //      }
+        // 5. No frontend, `listarDisciplinas(cursoId)` (NovoRequerimentoPage.jsx) também precisa
+        //    trocar para um endpoint que devolve só as disciplinas em que o aluno logado está
+        //    matriculado (ex.: GET /api/disciplinas/minhas), em vez de todas as disciplinas do curso.
+
         return disciplina;
     }
 
@@ -382,8 +455,8 @@ public class RequerimentoService {
     }
 
     private void validarPermissaoAprovacao(User aprovador, EtapaAprovacao etapa, Requerimento requerimento) {
-        if (isAdmin(aprovador)) return;
-        if (aprovador.getRole() != etapa.getRole()) {
+        if (aprovador.isEffectiveAdmin()) return;
+        if (!aprovador.getRoles().contains(etapa.getRole())) {
             throw new ForbiddenException("Seu perfil não pode aprovar a etapa atual");
         }
 
@@ -408,14 +481,14 @@ public class RequerimentoService {
 
     private boolean calcularPodeAprovar(Requerimento req, User usuario) {
         if (req.getStatus() != StatusRequerimento.EM_APROVACAO) return false;
-        if (isAdmin(usuario)) return true;
+        if (usuario.isEffectiveAdmin()) return true;
         EtapaAprovacao etapa;
         try {
             etapa = getEtapaAtual(req);
         } catch (Exception e) {
             return false;
         }
-        if (usuario.getRole() != etapa.getRole()) return false;
+        if (!usuario.getRoles().contains(etapa.getRole())) return false;
 
         if (etapa.getRole() == Role.PROFESSOR) {
             User professor = req.getDisciplina() != null ? req.getDisciplina().getProfessor() : null;
@@ -434,10 +507,10 @@ public class RequerimentoService {
      * cuja role participa de alguma etapa do fluxo do tipo (aprovadores passados/futuros).
      */
     private boolean podeVisualizar(Requerimento requerimento, User usuario) {
-        if (isAdmin(usuario)) return true;
+        if (usuario.isEffectiveAdmin()) return true;
         if (requerimento.getSolicitante().getId().equals(usuario.getId())) return true;
         return etapasOrdenadas(requerimento.getTipoRequerimento()).stream()
-                .anyMatch(e -> e.getRole() == usuario.getRole());
+                .anyMatch(e -> usuario.getRoles().contains(e.getRole()));
     }
 
     private void notificarProximoAprovador(Requerimento requerimento) {
@@ -455,10 +528,6 @@ public class RequerimentoService {
                             requerimento.getTipoRequerimento().getNome(),
                             requerimento.getId());
                 });
-    }
-
-    private boolean isAdmin(User usuario) {
-        return usuario.isAdmin() || usuario.getRole() == Role.ADMIN;
     }
 
     private void registrarHistorico(

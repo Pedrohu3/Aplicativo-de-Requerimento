@@ -1,6 +1,8 @@
 package br.edu.femass.desenvsistemas.entity;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -16,6 +18,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -41,9 +46,12 @@ public class User {
     @Column(nullable = false)
     private String senha;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
+    @Column(name = "role", nullable = false)
+    @Builder.Default
+    private Set<Role> roles = new HashSet<>();
 
     @Column(nullable = false)
     @Builder.Default
@@ -52,4 +60,12 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "curso_id")
     private Curso curso;
+
+    /**
+     * Admin "lógico": vale tanto para quem tem a role ADMIN quanto para quem
+     * recebeu a flag admin combinada com outra role (ex.: professor + admin).
+     */
+    public boolean isEffectiveAdmin() {
+        return admin || roles.contains(Role.ADMIN);
+    }
 }

@@ -1,180 +1,102 @@
-# Desenv Sistemas
+# Sistema de Requerimentos — FEMASS
 
 Projeto full stack para a disciplina de Desenvolvimento de Sistemas — **FEMASS**.
 
-Stack principal: **Spring Boot** (backend) + **React + Vite** (frontend).
+Stack principal: **Spring Boot** (backend) + **React + Vite** (frontend), com PostgreSQL, autenticação JWT, upload de anexos em storage compatível com S3 e envio de e-mails transacionais.
 
 ---
 
 ## Índice
 
 1. [Visão geral](#visão-geral)
-2. [O que já foi feito](#o-que-já-foi-feito)
-3. [Em desenvolvimento / próximos passos](#em-desenvolvimento--próximos-passos)
-4. [Estrutura do projeto](#estrutura-do-projeto)
-5. [Como executar](#como-executar)
-6. [Credenciais de acesso (dev)](#credenciais-de-acesso-dev)
-7. [Tecnologias utilizadas](#tecnologias-utilizadas)
+2. [Funcionalidades implementadas](#funcionalidades-implementadas)
+3. [Conceitos principais](#conceitos-principais)
+4. [Fluxo de um requerimento](#fluxo-de-um-requerimento)
+5. [Estrutura do projeto](#estrutura-do-projeto)
+6. [Como executar](#como-executar)
+7. [Variáveis de ambiente](#variáveis-de-ambiente)
+8. [Credenciais de acesso (dev)](#credenciais-de-acesso-dev)
+9. [API principal](#api-principal)
+10. [Pontos de futura implementação](#pontos-de-futura-implementação)
+11. [Tecnologias utilizadas](#tecnologias-utilizadas)
+12. [Deploy](#deploy)
+13. [Solução de problemas](#solução-de-problemas)
 
 ---
 
 ## Visão geral
 
-**Sistema de Requerimentos FEMASS** — permite criar tipos de requerimento com formulários dinâmicos (texto, select, radio, checkbox, data, número) e fluxos de aprovação personalizados (ex.: Professor → Coordenação → Diretor, ou apenas Coordenação).
+**Sistema de Requerimentos FEMASS** — permite que a secretaria/coordenação cadastre **tipos de requerimento** com formulários dinâmicos (texto, texto longo, select, radio, checkbox, data, número, anexo) e fluxos de aprovação configuráveis em etapas (ex.: Professor → Coordenação → Diretor), e que qualquer usuário abra requerimentos desses tipos e acompanhe a aprovação até o resultado final.
 
-Stack: API REST em Spring Boot + interface React com autenticação HTTP Basic.
-
----
-
-## O que já foi feito
-
-### Backend (Spring Boot + Maven)
-
-| Item | Status | Descrição |
-|------|--------|-----------|
-| Projeto Maven Java 17 | ✅ Concluído | Spring Boot 3.2.5 |
-| Spring Web | ✅ Concluído | API REST |
-| Spring Data JPA | ✅ Concluído | Persistência configurada |
-| PostgreSQL Driver | ✅ Concluído | Driver e `application.properties` |
-| Lombok | ✅ Concluído | Dependência no `pom.xml` |
-| Spring Security | ✅ Concluído | HTTP Basic + CORS para o frontend |
-| Validation | ✅ Concluído | Dependência no `pom.xml` |
-| Estrutura em camadas | ✅ Concluído | `controller`, `service`, `repository`, `entity`, `dto`, `config` |
-| `application.properties` | ✅ Concluído | Conexão PostgreSQL + usuário padrão de dev |
-| Endpoint de health | ✅ Concluído | `GET /api/public/health` |
-| Endpoint de autenticação | ✅ Concluído | `GET /api/me` (usuário autenticado) |
-| CORS | ✅ Concluído | Liberado para `http://localhost:5173` |
-| Entidade `User` (JPA) | ✅ Concluído | Campos: id, nome, email, senha, role |
-| Enum `Role` | ✅ Concluído | ALUNO, PROFESSOR, SECRETARIO, COORDENADOR, DIRETOR, ADMIN |
-| CRUD de usuários | ✅ Concluído | Repository, Service, Controller e DTOs |
-| Senha criptografada | ✅ Concluído | BCrypt via `PasswordEncoder` |
-| Usuário admin inicial | ✅ Concluído | Seed automático no banco (`admin@femass.edu.br`) |
-| Autenticação via banco | ✅ Concluído | `CustomUserDetailsService` com e-mail e senha do PostgreSQL |
-| Tratamento de erros | ✅ Concluído | 404, 409, 403 e validação de campos |
-| Sistema de Requerimentos | ✅ Concluído | Formulários dinâmicos + fluxo de aprovação |
-| Entidades de requerimento | ✅ Concluído | TipoRequerimento, CampoFormulario, EtapaAprovacao, Requerimento, ValorCampo, HistoricoAprovacao |
-| Usuários de demonstração | ✅ Concluído | Aluno, Professor, Coordenador, Diretor, Secretário e Admin |
-
-### Frontend (React + Vite)
-
-| Item | Status | Descrição |
-|------|--------|-----------|
-| Projeto Vite + React | ✅ Concluído | Pasta `frontend/` |
-| React Router | ✅ Concluído | Rotas públicas e protegidas |
-| Axios | ✅ Concluído | Cliente HTTP com interceptors |
-| TailwindCSS v4 | ✅ Concluído | Estilização utilitária |
-| Tela de login | ✅ Concluído | Autenticação com perfil (role) |
-| Dashboard | ✅ Concluído | Ações rápidas do sistema de requerimentos |
-| Tipos de Requerimento | ✅ Concluído | Criar formulários e fluxos de aprovação |
-| Novo Requerimento | ✅ Concluído | Formulário dinâmico + envio/rascunho |
-| Meus Requerimentos | ✅ Concluído | Listagem e acompanhamento de status |
-| Fila de Aprovação | ✅ Concluído | Análise por perfil (professor, coordenador, etc.) |
-| Detalhe do Requerimento | ✅ Concluído | Visualização, histórico, aprovar/rejeitar |
-| Sidebar por perfil | ✅ Concluído | Menu adaptado conforme role do usuário |
+O sistema já cobre o ciclo de vida completo de um requerimento: criação, envio, aprovação por etapas, rejeição com motivo, **solicitação de ajustes** (devolução para correção sem perder o histórico), cancelamento, anexos, prazos com aviso automático por e-mail e notificações por e-mail em cada etapa.
 
 ---
 
-## Em desenvolvimento / próximos passos
+## Funcionalidades implementadas
 
-| Item | Status | Descrição |
-|------|--------|-----------|
-| Página de Usuários (frontend) | 🔲 Pendente | CRUD visual de usuários |
-| Notificações por e-mail | 🔲 Pendente | Avisar aprovadores sobre novos requerimentos |
-| Anexos de arquivos | 🔲 Pendente | Upload de documentos nos requerimentos |
-| JWT / OAuth2 | 🔲 Pendente | Substituir HTTP Basic por token JWT |
-| Testes automatizados | 🔲 Pendente | Unitários e integração |
-| Deploy | 🔲 Pendente | Ambiente de produção |
+### Autenticação e usuários
+- Login/registro com **JWT** (`spring-security` + `jjwt`), senha com BCrypt.
+- **Roles acumulativas**: um usuário pode ter mais de uma role ao mesmo tempo (ex.: Professor **e** Coordenador), exceto Aluno, que é exclusiva.
+- **Admin como atributo lógico**: a flag `admin` pode ser combinada com qualquer role (exceto Aluno) — um Professor pode também ser administrador sem que isso apareça como uma "role" separada. `ADMIN` também continua existindo como role própria (para uma conta administrativa "pura", sem outra função — é o caso da conta master semeada na inicialização).
+- Tela de **Usuários** (admin): edição de roles (multi-seleção), da flag admin e visualização do(s) curso(s) vinculado(s) de cada usuário — para Aluno é o curso matriculado; para Professor/Secretário/Coordenador/Diretor é derivado das disciplinas/cursos em que atuam.
 
----
+### Cursos, disciplinas e responsáveis
+- CRUD de **Cursos**.
+- CRUD de **Disciplinas** (vinculadas a um curso e a um professor responsável).
+- Atribuição de **responsáveis por curso e etapa** (Secretário, Coordenador, Diretor) — cada etapa de aprovação com escopo Curso é resolvida pelo responsável designado para aquele curso.
 
-## Fluxo do sistema
-
-1. **Coordenador/Admin** cria um **tipo de requerimento** definindo:
-   - Campos do formulário (texto, select, radio, checkbox, data, número)
-   - Etapas de aprovação em ordem (ex.: `PROFESSOR` → `COORDENADOR` → `DIRETOR`)
-2. **Qualquer usuário** (ex.: aluno) preenche o formulário e envia.
-3. O requerimento entra em **EM_APROVACAO** na primeira etapa.
-4. O usuário com a **role da etapa atual** aprova ou rejeita.
-5. Se aprovado, avança para a próxima etapa; na última etapa, status **APROVADO**.
-6. Todo o histórico fica registrado com observações.
-
-### Tipos de campo disponíveis
-
-`TEXTO` · `TEXTO_LONGO` · `SELECAO` · `OPCAO_UNICA` · `CHECKBOX` · `DATA` · `NUMERO`
-
-### Status do requerimento
-
-`RASCUNHO` · `EM_APROVACAO` · `APROVADO` · `REJEITADO` · `CANCELADO`
-
----
-
-## API de Requerimentos
-
-### Tipos de requerimento
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/tipos-requerimento` | Lista tipos ativos |
-| `GET` | `/api/tipos-requerimento/todos` | Lista todos (gestão) |
-| `GET` | `/api/tipos-requerimento/{id}` | Detalhe com campos e etapas |
-| `POST` | `/api/tipos-requerimento` | Cria tipo (Secretário, Coordenador, Diretor, Admin) |
-| `DELETE` | `/api/tipos-requerimento/{id}` | Desativa tipo |
+### Tipos de requerimento (formulário + fluxo configuráveis)
+- Editor de **campos dinâmicos**: `TEXTO`, `TEXTO_LONGO`, `SELECAO`, `OPCAO_UNICA`, `CHECKBOX`, `DATA`, `NUMERO`, `ANEXO` — com opção de obrigatoriedade e (quando aplicável) lista de opções.
+- Campos fixos automáticos por **escopo** (Nome, Matrícula, e Curso/Disciplina quando aplicável).
+- **Escopo** do tipo (`DISCIPLINA`, `CURSO` ou `ADMINISTRATIVO`) — define como o aprovador de cada etapa é resolvido (professor da disciplina escolhida, responsável do curso do solicitante, ou qualquer usuário com a role da etapa, respectivamente).
+- **Fluxo de aprovação** com N etapas em ordem, cada uma com uma role responsável, descrição e prazo (dias) opcional.
+- **Quem pode solicitar** (`rolesPermitidas`): cada tipo pode ser restrito a um subconjunto de roles (ex.: ACG só para Aluno) — vazio significa liberado para todos. Validado tanto na listagem (o aluno só vê o que pode pedir) quanto na criação (bloqueado no backend mesmo via chamada direta à API).
+- Remoção de campos/etapas individuais no editor (com no mínimo 1 de cada, conforme exigido pelo backend), e desativação (soft delete) de tipos.
 
 ### Requerimentos
+- Criação como **rascunho** (editável antes de enviar) ou envio direto.
+- **Aprovação por etapas**: cada aprovador só decide sobre a etapa atual e apenas se for a pessoa/role designada (ou admin, que pode agir em qualquer etapa).
+- Três ações possíveis em cada etapa:
+  - **Aprovar** → avança para a próxima etapa, ou finaliza como `APROVADO` na última.
+  - **Rejeitar** → finaliza como `REJEITADO`, com motivo obrigatório (`MotivoRejeicao`) e observação quando o motivo é "Outro".
+  - **Solicitar ajustes** → devolve o requerimento para o solicitante corrigir, com observação obrigatória descrevendo o que precisa ser corrigido. Ao reenviar, o requerimento **volta direto para a mesma etapa/aprovador que pediu o ajuste** — não reinicia o fluxo do zero. Pode haver múltiplas idas e voltas na mesma etapa; o histórico completo de cada rodada fica registrado.
+- **Cancelamento** pelo próprio solicitante (ou admin), permitido em qualquer status não finalizado.
+- **Edição de valores**: por admin em qualquer requerimento, ou pelo próprio solicitante quando o status é "Ajustes solicitados".
+- **Anexos**: upload de arquivo para storage compatível com S3 (`POST /api/anexos`), com link de download no detalhe do requerimento.
+- **Prazos**: cada etapa pode ter um prazo em dias; um job agendado (`PrazoAprovacaoScheduler`, diário às 8h) avisa por e-mail o aprovador quando o prazo está próximo do vencimento.
+- **E-mails automáticos** (via SMTP Brevo): confirmação de envio, aviso de pendência para o próximo aprovador, resultado final (aprovado/rejeitado), aviso de ajustes solicitados e aviso de prazo próximo.
+- Histórico completo por requerimento (quem, quando, ação, observação, motivo).
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/requerimentos/meus` | Meus requerimentos |
-| `GET` | `/api/requerimentos/pendentes` | Fila de aprovação do meu perfil |
-| `GET` | `/api/requerimentos/{id}` | Detalhe completo |
-| `POST` | `/api/requerimentos` | Cria requerimento (rascunho ou enviado) |
-| `POST` | `/api/requerimentos/{id}/enviar` | Envia rascunho |
-| `POST` | `/api/requerimentos/{id}/aprovar` | Aprova ou rejeita |
-| `POST` | `/api/requerimentos/{id}/cancelar` | Cancela requerimento |
+### Frontend
+- Sidebar com menu adaptado por role/admin.
+- Dashboard com atalhos e indicadores rápidos.
+- Telas: Login, Registro, Dashboard, Novo Requerimento, Meus Requerimentos, Aprovações (fila do meu perfil), Detalhe do Requerimento (com timeline do fluxo de aprovação, incluindo o histórico de "ajustes solicitados" por etapa), Editar Requerimento, Tipos de Requerimento, Usuários, Novo Usuário, Cursos, Disciplinas, Como Funciona.
 
-### Exemplo — criar tipo com fluxo customizado
+---
 
-```json
-POST /api/tipos-requerimento
-{
-  "nome": "Declaração de Matrícula",
-  "descricao": "Solicitação de declaração",
-  "campos": [
-    { "tipo": "TEXTO", "label": "Nome completo", "obrigatorio": true, "ordem": 0 },
-    { "tipo": "SELECAO", "label": "Turno", "opcoes": ["Manhã", "Noite"], "obrigatorio": true, "ordem": 1 }
-  ],
-  "etapas": [
-    { "ordem": 0, "role": "PROFESSOR", "descricao": "Validação do professor" },
-    { "ordem": 1, "role": "COORDENADOR", "descricao": "Aprovação da coordenação" }
-  ]
-}
-```
+## Conceitos principais
 
-Base URL: `http://localhost:8081/api/users` (requer autenticação HTTP Basic)
+| Conceito | Valores |
+|---|---|
+| `Role` (roles do usuário, acumulativas) | `ALUNO` · `PROFESSOR` · `SECRETARIO` · `COORDENADOR` · `DIRETOR` · `ADMIN` |
+| Flag `admin` | booleano independente da(s) role(s); combinável com qualquer role exceto `ALUNO` |
+| `EscopoRequerimento` (do tipo) | `DISCIPLINA` · `CURSO` · `ADMINISTRATIVO` |
+| `StatusRequerimento` | `RASCUNHO` · `EM_APROVACAO` · `AJUSTES_SOLICITADOS` · `APROVADO` · `REJEITADO` · `CANCELADO` |
+| `AcaoAprovacao` | `APROVADO` · `REJEITADO` · `AJUSTES_SOLICITADOS` |
+| `MotivoRejeicao` | `DOCUMENTACAO_INCOMPLETA` · `DADOS_INCONSISTENTES` · `NAO_ATENDE_CRITERIOS` · `FORA_DO_PRAZO` · `DUPLICADO` · `OUTRO` |
+| `CampoTipo` (campos do formulário) | `TEXTO` · `TEXTO_LONGO` · `SELECAO` · `OPCAO_UNICA` · `CHECKBOX` · `DATA` · `NUMERO` · `ANEXO` |
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| `GET` | `/api/users` | Lista todos os usuários |
-| `GET` | `/api/users/{id}` | Busca usuário por id |
-| `POST` | `/api/users` | Cria novo usuário |
-| `PUT` | `/api/users/{id}` | Atualiza usuário (senha opcional) |
-| `DELETE` | `/api/users/{id}` | Remove usuário |
+---
 
-### Exemplo — criar usuário
+## Fluxo de um requerimento
 
-```json
-POST /api/users
-{
-  "nome": "Maria Silva",
-  "email": "maria@femass.edu.br",
-  "senha": "123456",
-  "role": "ALUNO"
-}
-```
-
-### Roles disponíveis
-
-`ALUNO` · `PROFESSOR` · `SECRETARIO` · `COORDENADOR` · `DIRETOR` · `ADMIN`
+1. Um usuário com permissão (Secretário/Coordenador/Diretor/Admin) cria um **tipo de requerimento**: campos do formulário, escopo, fluxo de etapas e quem pode solicitar.
+2. Um usuário permitido preenche o formulário — pode **salvar como rascunho** ou **enviar** direto.
+3. Ao enviar, o requerimento entra em `EM_APROVACAO` na primeira etapa; o aprovador correspondente é notificado por e-mail.
+4. O aprovador da etapa atual decide: **aprovar** (avança), **rejeitar** (finaliza) ou **solicitar ajustes** (devolve pro solicitante, mesma etapa).
+5. Se ajustes foram solicitados, o solicitante edita e reenvia — volta para a mesma etapa/aprovador, sem perder o histórico.
+6. Na última etapa aprovada, o requerimento vira `APROVADO` e o solicitante é notificado.
+7. Todo o percurso (quem decidiu, quando, o quê) fica no histórico, visível no detalhe do requerimento.
 
 ---
 
@@ -182,27 +104,33 @@ POST /api/users
 
 ```
 Aplicativo-de-Requerimento/
-├── README.md                          # Este arquivo
+├── README.md
 ├── pom.xml                            # Backend Maven
+├── Dockerfile                         # Build do backend (multi-stage, JDK 21)
+├── docker-compose.yml                 # backend + PostgreSQL para rodar localmente
+├── render.yaml                        # Deploy do backend (Render)
 ├── src/main/
 │   ├── java/br/edu/femass/desenvsistemas/
 │   │   ├── DesenvSistemasApplication.java
-│   │   ├── config/                    # Security, CORS, seed de dados
+│   │   ├── config/                    # JWT, Security, CORS, storage, seed do admin
 │   │   ├── controller/                # REST controllers
-│   │   ├── service/                   # Regras de negócio
-│   │   ├── repository/                # Acesso ao banco
-│   │   ├── entity/                    # Entidades JPA
-│   │   ├── dto/                       # Objetos de transferência
+│   │   ├── service/                   # Regras de negócio (Requerimento, TipoRequerimento, Curso, Disciplina, User, Email, Storage...)
+│   │   ├── repository/                # Spring Data JPA
+│   │   ├── entity/                    # Entidades JPA e enums
+│   │   ├── dto/                       # Request/Response
 │   │   └── exception/                 # Tratamento global de erros
-│   └── resources/
-│       └── application.properties
+│   ├── resources/
+│   │   ├── application.properties
+│   │   └── db/                        # Scripts de migração manual (ddl-auto=update não cobre tudo — ver comentários nos próprios .sql)
+│   └── test/                          # Testes (JUnit + MockMvc)
 └── frontend/
     ├── package.json
     ├── vite.config.js
+    ├── vercel.json                    # Deploy do frontend (Vercel)
     └── src/
         ├── pages/                     # Telas da aplicação
-        ├── components/                # Sidebar, formulários, badges
-        ├── services/                  # api, authService, requerimentoService
+        ├── components/                # Sidebar, Navbar, DynamicForm, StatusBadge, ConfirmDialog...
+        ├── services/                  # api, authService, requerimentoService, userService, cursosService, disciplinasService, anexoService
         ├── layouts/                   # AuthLayout, AdminLayout
         ├── App.jsx                    # Rotas
         └── main.jsx
@@ -212,188 +140,166 @@ Aplicativo-de-Requerimento/
 
 ## Como executar
 
-### Pré-requisitos
+### Opção A — Docker Compose (recomendado)
 
-| Ferramenta | Versão mínima | Observação |
-|------------|---------------|------------|
-| Java (JDK) | 17+ | O Maven precisa usar JDK 17 ou superior (não Java 8) |
-| Maven | 3.8+ | `mvn -version` deve mostrar Java 17+ |
-| Node.js | 18+ | Para o frontend React |
-| PostgreSQL | 14+ | Serviço em execução na porta 5432 |
+Sobe o backend e o PostgreSQL juntos, sem precisar instalar Java/Maven/Postgres localmente.
 
-> **Caminho do projeto (Windows):**  
-> `C:\Users\ericr\OneDrive\Documentos\GitHub\Aplicativo-de-Requerimento`
-
-### 1. Clonar / abrir o projeto
-
-```powershell
-cd "C:\Users\ericr\OneDrive\Documentos\GitHub\Aplicativo-de-Requerimento"
+```bash
+docker compose up -d --build
 ```
-
-Se o `java -version` no terminal mostrar Java 8, mas o Maven usar outra versão, confira com `mvn -version`. O backend exige **JDK 17+**.
-
-### 2. Banco de dados PostgreSQL
-
-Crie o banco (se ainda não existir):
-
-```sql
-CREATE DATABASE desenv_sistemas;
-```
-
-Via terminal (PowerShell), substituindo `SUA_SENHA` pela senha do usuário `postgres`:
-
-```powershell
-$env:PGPASSWORD='SUA_SENHA'
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -h localhost -d postgres -c "CREATE DATABASE desenv_sistemas;"
-```
-
-Configure a conexão em `src/main/resources/application.properties`:
-
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/desenv_sistemas
-spring.datasource.username=postgres
-spring.datasource.password=SUA_SENHA_AQUI
-server.port=8081
-```
-
-> **Importante:** a senha em `application.properties` deve ser a mesma definida na instalação do PostgreSQL. No ambiente local deste projeto, a senha do usuário `postgres` é `ieremis0`.
-
-Na primeira execução do backend, usuários de demonstração são criados automaticamente (veja [Credenciais de acesso](#credenciais-de-acesso-dev)).
-
-### 3. Backend (Spring Boot)
-
-Abra um terminal na **raiz do projeto** e execute:
-
-```powershell
-cd "C:\Users\ericr\OneDrive\Documentos\GitHub\Aplicativo-de-Requerimento"
-mvn spring-boot:run
-```
-
-Aguarde a mensagem `Started DesenvSistemasApplication`.
 
 - API: `http://localhost:8081`
 - Health check: `http://localhost:8081/api/public/health`
+- Banco Postgres exposto em `localhost:5433` (usuário/senha `postgres`/`admin`, database `desenv_sistemas`)
 
-> **Porta 8081:** o backend usa a porta **8081** porque a **8080** costuma estar ocupada pelo Oracle TNS Listener (`TNSLSNR.EXE`) em máquinas com Oracle Database. Se preferir outra porta, altere `server.port` em `application.properties` e o `target` do proxy em `frontend/vite.config.js`.
+Sempre que alterar código Java, é preciso **rebuildar a imagem** (o container não faz hot reload):
 
-### 4. Frontend (React + Vite)
+```bash
+docker compose build backend && docker compose up -d backend
+```
 
-Em **outro terminal**:
+Depois, em outro terminal, suba o frontend (veja abaixo) apontando pra essa API.
 
-```powershell
-cd "C:\Users\ericr\OneDrive\Documentos\GitHub\Aplicativo-de-Requerimento\frontend"
+### Opção B — Manual (sem Docker)
+
+**Pré-requisitos:** JDK 17+ (a imagem Docker usa 21), Maven 3.8+, Node 18+, PostgreSQL 14+ rodando localmente.
+
+```bash
+# 1. Criar o banco
+psql -U postgres -c "CREATE DATABASE desenv_sistemas;"
+
+# 2. Ajustar credenciais em src/main/resources/application.properties
+#    (ou exportar DATABASE_URL / DATABASE_USERNAME / DATABASE_PASSWORD)
+
+# 3. Backend
+mvn spring-boot:run
+```
+
+### Frontend (React + Vite)
+
+```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-Interface disponível em: `http://localhost:5173`
+Interface em `http://localhost:5173`; o Vite faz proxy de `/api` para `http://localhost:8081` (ou usa `VITE_API_URL`, ver `.env.example`).
 
-O Vite redireciona requisições `/api` para o backend em `http://localhost:8081`.
+---
 
-### 5. Acessar o sistema
+## Variáveis de ambiente
 
-1. Abra `http://localhost:5173` no navegador.
-2. Faça login com uma das credenciais da tabela abaixo (ex.: `coordenador@femass.edu.br` / `senha123`).
-3. Backend e frontend precisam estar rodando ao mesmo tempo.
+Veja `.env.example` (raiz) e `frontend/.env.example`. As principais:
 
-### Resumo rápido (dois terminais)
+| Variável | Uso |
+|---|---|
+| `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` | Conexão PostgreSQL |
+| `APP_MASTER_NAME`, `APP_MASTER_EMAIL`, `APP_MASTER_PASSWORD` | Conta admin semeada na primeira execução (default: `Master Admin` / `master@femass.edu.br` / `Master@123!`) |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` | SMTP (Brevo) para os e-mails automáticos |
+| `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`, `STORAGE_BUCKET_NAME`, `STORAGE_PUBLIC_URL` | Storage compatível com S3 (Supabase Storage) para anexos |
+| `PRAZO_AVISO_DIAS_ANTES` | Dias de antecedência do aviso de prazo (default 2) |
+| `VITE_API_URL` (frontend) | URL base da API em produção |
 
-| Terminal | Comando | URL |
-|----------|---------|-----|
-| 1 — Backend | `mvn spring-boot:run` (na raiz) | http://localhost:8081 |
-| 2 — Frontend | `npm run dev` (em `frontend/`) | http://localhost:5173 |
+Sem as credenciais de e-mail/storage configuradas, o sistema continua funcionando normalmente — só o envio de e-mail e o upload de anexo real ficam indisponíveis (falhas são logadas, não travam o fluxo).
 
 ---
 
 ## Credenciais de acesso (dev)
 
-| Perfil | E-mail | Senha |
-|--------|--------|-------|
-| Admin | `admin@femass.edu.br` | `admin123` |
-| Aluno | `aluno@femass.edu.br` | `senha123` |
-| Professor | `professor@femass.edu.br` | `senha123` |
-| Coordenador | `coordenador@femass.edu.br` | `senha123` |
-| Diretor | `diretor@femass.edu.br` | `senha123` |
-| Secretário | `secretario@femass.edu.br` | `senha123` |
+Na primeira execução, o `UserDataLoader` semeia **apenas a conta master**, configurável por env var:
 
-> Usuários criados automaticamente na primeira execução do backend.
+| Campo | Default |
+|---|---|
+| Nome | `Master Admin` |
+| E-mail | `master@femass.edu.br` |
+| Senha | `Master@123!` |
+
+A partir dela (role `ADMIN`), crie os demais usuários pela tela **Usuários → Novo usuário**, ou deixe alunos se cadastrarem por `/register`.
 
 ### Roteiro de teste rápido
 
-1. Login como **coordenador** → criar um tipo de requerimento com 2 etapas.
-2. Login como **aluno** → criar e enviar um requerimento desse tipo.
-3. Login como **professor** → aprovar na fila de aprovações.
-4. Login como **coordenador** → aprovar a etapa final.
+1. Login como **master** → cadastrar um Curso, uma Disciplina (com professor) e um Tipo de Requerimento com fluxo de etapas.
+2. Registrar/criar um **aluno** vinculado a esse curso → abrir e enviar um requerimento.
+3. Login como o aprovador da etapa (ou como master, que pode agir em qualquer etapa) → aprovar, rejeitar ou solicitar ajustes.
+4. Se ajustes forem solicitados, logar como o aluno, editar e reenviar (**Meus Requerimentos** → "Editar e reenviar").
 
 ---
 
-## Solução de problemas
+## API principal
 
-### Erro: `autenticação do tipo senha falhou para o usuário "postgres"`
+Autenticação: `Authorization: Bearer <token>` obtido em `/api/auth/login` ou `/api/auth/register`.
 
-**Causa:** a senha em `application.properties` não coincide com a senha real do PostgreSQL.
+### Autenticação
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/auth/register` | Cadastro de aluno (auto-serviço) |
+| `POST` | `/api/auth/login` | Login (e-mail ou matrícula + senha) |
 
-**Como corrigir:**
+### Usuários
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/users` | Lista usuários (staff) |
+| `GET` | `/api/users/{id}` | Busca por id |
+| `POST` | `/api/users` | Cria usuário (admin) |
+| `PUT` | `/api/users/{id}` | Atualiza roles/admin/curso/senha (admin) |
+| `DELETE` | `/api/users/{id}` | Remove usuário (admin) |
 
-1. Abra `src/main/resources/application.properties`
-2. Ajuste a senha:
-   ```properties
-   spring.datasource.password=SUA_SENHA_REAL
-   ```
-3. Se necessário, redefina a senha pelo pgAdmin 4 ou pelo terminal:
-   ```powershell
-   $env:PGPASSWORD='SUA_SENHA_ATUAL'
-   & "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -h localhost -d postgres -c "ALTER USER postgres PASSWORD 'nova_senha';"
-   ```
+### Cursos e disciplinas
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET`/`POST`/`PUT`/`DELETE` | `/api/cursos[/{id}]` | CRUD de cursos (escrita: admin) |
+| `PUT`/`DELETE` | `/api/cursos/{id}/responsaveis[/{role}]` | Atribui/remove responsável por etapa do curso (admin) |
+| `GET`/`POST`/`PUT`/`DELETE` | `/api/disciplinas[/{id}]` (aceita `?cursoId=`) | CRUD de disciplinas (escrita: admin) |
 
-### Erro: banco de dados não existe
+### Tipos de requerimento
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/tipos-requerimento` | Lista tipos ativos |
+| `GET` | `/api/tipos-requerimento/todos` | Lista todos, incluindo inativos (gestão) |
+| `GET` | `/api/tipos-requerimento/{id}` | Detalhe com campos e etapas |
+| `POST` | `/api/tipos-requerimento` | Cria tipo (Secretário, Coordenador, Diretor ou admin) |
+| `PUT` | `/api/tipos-requerimento/{id}` | Atualiza tipo |
+| `DELETE` | `/api/tipos-requerimento/{id}` | Desativa tipo (soft delete) |
 
-Crie o banco antes de subir a aplicação:
+### Requerimentos
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/requerimentos/meus` | Meus requerimentos |
+| `GET` | `/api/requerimentos/pendentes` | Fila de aprovação do meu perfil |
+| `GET` | `/api/requerimentos/{id}` | Detalhe completo + histórico |
+| `POST` | `/api/requerimentos` | Cria requerimento (rascunho ou já enviado) |
+| `PUT` | `/api/requerimentos/{id}` | Edita valores (admin, ou solicitante se `AJUSTES_SOLICITADOS`) |
+| `POST` | `/api/requerimentos/{id}/enviar` | Envia rascunho, ou reenvia após ajustes |
+| `POST` | `/api/requerimentos/{id}/aprovar` | Decide a etapa atual: `APROVADO`, `REJEITADO` ou `AJUSTES_SOLICITADOS` |
+| `POST` | `/api/requerimentos/{id}/cancelar` | Cancela requerimento |
 
-```powershell
-$env:PGPASSWORD='SUA_SENHA'
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -h localhost -d postgres -c "CREATE DATABASE desenv_sistemas;"
-```
+### Anexos
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/anexos` | Upload de arquivo (`multipart/form-data`, campo `file`) → retorna URL pública |
 
-Confirme que a URL JDBC usa o mesmo nome:
+---
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/desenv_sistemas
-```
+## Pontos de futura implementação
 
-### Erro: `Port 8080 was already in use`
+O sistema está funcionalmente completo para o fluxo de requerimentos, mas para uso real pela universidade alguns dados hoje mantidos manualmente deveriam vir de um sistema acadêmico oficial (ex.: **WebAcademico**). Os pontos exatos já estão marcados com comentários `FUTURA IMPLEMENTAÇÃO` no código, explicando o desenho sugerido — nada disso está implementado de fato, é só a documentação de como fazer:
 
-**Causa comum:** Oracle Database (processo `TNSLSNR.EXE`) ocupa a porta 8080.
-
-**Solução:** este projeto já está configurado para usar a porta **8081**. Se ainda aparecer conflito de porta, altere `server.port` em `application.properties` e o proxy em `frontend/vite.config.js`.
-
-Para ver o que está usando uma porta:
-
-```powershell
-netstat -ano | findstr ":8081"
-```
-
-### Erro: `UnsupportedClassVersionError` ou falha de compilação Java
-
-**Causa:** Maven está usando Java 8 ou versão inferior a 17.
-
-**Como corrigir:** instale JDK 17+ e confira com `mvn -version`. Se necessário, defina `JAVA_HOME` apontando para o JDK correto antes de rodar `mvn spring-boot:run`.
-
-### Frontend não conecta na API
-
-1. Confirme que o backend está rodando (`http://localhost:8081/api/public/health` deve retornar `{"status":"UP"}`).
-2. Reinicie o `npm run dev` após alterar `vite.config.js`.
-3. Backend e frontend devem rodar em terminais separados.
+- **Usuários** (alunos/professores) — `UserService.create()`: hoje cadastro manual pelo admin; deveria vir de sincronização com o WebAcademico.
+- **Cursos** — `CursoService.criar()`.
+- **Disciplinas** — `DisciplinaService.criar()`.
+- **Matrícula do aluno por disciplina** — `RequerimentoService.vincularDisciplina()`: hoje um aluno pode abrir requerimento para **qualquer disciplina do seu curso**, não só as que ele está de fato cursando no período, porque não existe o conceito de matrícula por disciplina no modelo atual. O comentário no código detalha a entidade e a validação necessárias (nova entidade `MatriculaDisciplina`, populada por sincronização com o WebAcademico).
+- No frontend, `NovoRequerimentoPage.jsx` tem o ponto correspondente (troca de `listarDisciplinas(cursoId)` por um endpoint filtrado por matrícula real).
 
 ---
 
 ## Tecnologias utilizadas
 
 ### Backend
-- Java 17
-- Spring Boot 3.2.5
-- Spring Web, Data JPA, Security, Validation
+- Java 17 (compilado; imagem Docker roda em Eclipse Temurin 21)
+- Spring Boot 3.2.5 — Web, Data JPA, Security, Validation, Mail
 - PostgreSQL
+- JWT (`io.jsonwebtoken` / jjwt)
+- AWS SDK v2 (`software.amazon.awssdk:s3`) para storage de anexos compatível com S3
 - Lombok
 - Maven
 
@@ -406,16 +312,33 @@ netstat -ano | findstr ":8081"
 
 ---
 
-## Scripts úteis
+## Deploy
 
-| Comando | Onde | Descrição |
-|---------|------|-----------|
-| `mvn spring-boot:run` | raiz | Inicia o backend |
-| `mvn compile` | raiz | Compila o backend |
-| `npm run dev` | `frontend/` | Inicia o frontend em modo dev |
-| `npm run build` | `frontend/` | Gera build de produção |
-| `npm run preview` | `frontend/` | Preview do build |
+- **Backend**: Render (`render.yaml`), build via Docker (`Dockerfile`), health check em `/api/public/health`.
+- **Frontend**: Vercel (`frontend/vercel.json`), SPA com rewrite para `index.html`; usa `VITE_API_URL` para apontar pra API em produção.
+- **Storage de anexos**: Supabase Storage (compatível com S3).
+- **E-mail**: Brevo (SMTP relay, porta 465/SSL).
 
 ---
 
-*Última atualização: junho/2026*
+## Solução de problemas
+
+### `DataIntegrityViolationException` / erro 403 sem corpo ao criar ou aprovar algo
+Esse comportamento (uma violação de constraint no banco aparecendo como um 403 vazio, em vez de 500) já apareceu duas vezes neste projeto: quando o modelo de `role` do usuário mudou pra multi-valor, e ao adicionar o status `AJUSTES_SOLICITADOS`. A causa raiz nas duas vezes foi uma **`CHECK` constraint** gerada automaticamente pelo Hibernate na criação da tabela, presa aos valores antigos do enum — `spring.jpa.hibernate.ddl-auto=update` cria colunas/tabelas novas, mas **nunca** atualiza constraints existentes. Sempre que um enum ganhar um valor novo (`Role`, `StatusRequerimento`, `AcaoAprovacao` etc.), confira se existe uma `CHECK` constraint desatualizada na coluna correspondente e ajuste via script em `src/main/resources/db/` (veja `migration_user_roles.sql` e `migration_ajustes_solicitados.sql` como exemplo).
+
+### Erro de conexão com o PostgreSQL
+Confira `DATABASE_URL` / `DATABASE_USERNAME` / `DATABASE_PASSWORD` (ou os defaults em `application.properties`) e se o Postgres está de fato no ar na porta esperada (`5432` direto, ou `5433` via `docker compose`).
+
+### Porta 8081 ocupada
+Altere `server.port` em `application.properties` (ou a env var `PORT`) e o proxy correspondente em `frontend/vite.config.js`.
+
+### Frontend não conecta na API
+1. Confirme que o backend responde em `/api/public/health`.
+2. Reinicie `npm run dev` após alterar `vite.config.js` ou `.env`.
+3. Em produção, confira se `VITE_API_URL` está configurada no ambiente do Vercel.
+
+### Alterei um `.java` e o Docker não reflete a mudança
+O `docker-compose.yml` builda a imagem do backend a partir do código — não há hot reload. Rebuilde e reinicie:
+```bash
+docker compose build backend && docker compose up -d backend
+```

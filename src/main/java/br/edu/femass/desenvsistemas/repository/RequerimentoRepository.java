@@ -24,11 +24,11 @@ public interface RequerimentoRepository extends JpaRepository<Requerimento, Long
             JOIN t.etapas e
             WHERE r.status = :status
               AND e.ordem = r.etapaAtual
-              AND e.role = :role
+              AND e.role IN :roles
             ORDER BY r.criadoEm ASC
             """)
-    List<Requerimento> findPendentesPorRole(
+    List<Requerimento> findPendentesPorRoles(
             @Param("status") StatusRequerimento status,
-            @Param("role") br.edu.femass.desenvsistemas.entity.Role role
+            @Param("roles") java.util.Collection<br.edu.femass.desenvsistemas.entity.Role> roles
     );
 }

@@ -33,6 +33,11 @@ const emptyForm = {
   escopo: 'CURSO',
   campos: [emptyCampo(0)],
   etapas: [emptyEtapa(0)],
+  rolesPermitidas: [],
+}
+
+function toggleRolePermitida(roles, role) {
+  return roles.includes(role) ? roles.filter((r) => r !== role) : [...roles, role]
 }
 
 export default function TiposRequerimentoPage() {
@@ -96,6 +101,7 @@ export default function TiposRequerimentoPage() {
         descricao: e.descricao ?? '',
         diasLimite: e.diasLimite ?? '',
       })),
+      rolesPermitidas: tipo.rolesPermitidas ?? [],
     })
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -114,10 +120,24 @@ export default function TiposRequerimentoPage() {
     setForm({ ...form, campos })
   }
 
+  function removeCampo(index) {
+    setForm({
+      ...form,
+      campos: form.campos.filter((_, i) => i !== index).map((campo, i) => ({ ...campo, ordem: i })),
+    })
+  }
+
   function updateEtapa(index, field, value) {
     const etapas = [...form.etapas]
     etapas[index] = { ...etapas[index], [field]: value }
     setForm({ ...form, etapas })
+  }
+
+  function removeEtapa(index) {
+    setForm({
+      ...form,
+      etapas: form.etapas.filter((_, i) => i !== index).map((etapa, i) => ({ ...etapa, ordem: i })),
+    })
   }
 
   function updateEscopo(novoEscopo) {
@@ -153,6 +173,7 @@ export default function TiposRequerimentoPage() {
           descricao: etapa.descricao,
           diasLimite: etapa.diasLimite === '' ? null : Number(etapa.diasLimite),
         })),
+        rolesPermitidas: form.rolesPermitidas,
       }
 
       if (editingId) {
@@ -236,6 +257,27 @@ export default function TiposRequerimentoPage() {
               </select>
               <p className="mt-1.5 text-xs text-slate-500">
                 {ESCOPOS_REQUERIMENTO.find((e) => e.value === form.escopo)?.descricao}
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Quem pode solicitar</label>
+              <div className="flex flex-wrap gap-2">
+                {ROLES.filter((r) => r !== 'ADMIN').map((role) => (
+                  <label
+                    key={role}
+                    className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.rolesPermitidas.includes(role)}
+                      onChange={() => setForm({ ...form, rolesPermitidas: toggleRolePermitida(form.rolesPermitidas, role) })}
+                    />
+                    {role}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                Nenhuma marcada = liberado para todas as roles.
               </p>
             </div>
           </div>
@@ -330,14 +372,25 @@ export default function TiposRequerimentoPage() {
                       onChange={(e) => updateCampo(index, 'placeholder', e.target.value)}
                       className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                     />
-                    <label className="flex items-center gap-2 text-sm text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={campo.obrigatorio}
-                        onChange={(e) => updateCampo(index, 'obrigatorio', e.target.checked)}
-                      />
-                      Obrigatório
-                    </label>
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="flex items-center gap-2 text-sm text-slate-600">
+                        <input
+                          type="checkbox"
+                          checked={campo.obrigatorio}
+                          onChange={(e) => updateCampo(index, 'obrigatorio', e.target.checked)}
+                        />
+                        Obrigatório
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => removeCampo(index)}
+                        disabled={form.campos.length <= 1}
+                        title={form.campos.length <= 1 ? 'Informe ao menos um campo no formulário' : 'Remover campo'}
+                        className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Remover
+                      </button>
+                    </div>
                   </div>
                   {['SELECAO', 'OPCAO_UNICA', 'CHECKBOX'].includes(campo.tipo) && (
                     <input
@@ -400,6 +453,15 @@ export default function TiposRequerimentoPage() {
                     onChange={(e) => updateEtapa(index, 'diasLimite', e.target.value)}
                     className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
+                  <button
+                    type="button"
+                    onClick={() => removeEtapa(index)}
+                    disabled={form.etapas.length <= 1}
+                    title={form.etapas.length <= 1 ? 'Informe ao menos uma etapa no fluxo de aprovação' : 'Remover etapa'}
+                    className="rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Remover
+                  </button>
                 </div>
               ))}
             </div>
@@ -434,6 +496,7 @@ export default function TiposRequerimentoPage() {
                   <p className="text-sm text-slate-500">{tipo.descricao}</p>
                   <p className="mt-1 text-xs text-slate-400">
                     {tipo.campos.length} campos · {tipo.etapas.length} etapas · por {tipo.criadorNome}
+                    {tipo.rolesPermitidas?.length ? ` · restrito a ${tipo.rolesPermitidas.join(', ')}` : ' · aberto a todas as roles'}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

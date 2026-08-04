@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { getStoredUser } from '../services/authService'
+import { getStoredUser, isAdmin } from '../services/authService'
 import { listarCursos, criarCurso, atualizarCurso, deletarCurso, atribuirResponsavel, removerResponsavel } from '../services/cursosService'
 import { listarUsuarios } from '../services/userService'
 
@@ -8,7 +8,7 @@ const APPROVER_ROLES = ['SECRETARIO', 'COORDENADOR', 'DIRETOR']
 
 export default function CursosPage() {
   const user = getStoredUser()
-  if (user?.role !== 'ADMIN') return <Navigate to="/" replace />
+  if (!isAdmin(user)) return <Navigate to="/" replace />
 
   const [cursos, setCursos] = useState([])
   const [usuarios, setUsuarios] = useState([])
@@ -83,7 +83,7 @@ export default function CursosPage() {
   }
 
   function usuariosPorRole(role) {
-    return usuarios.filter((u) => u.role === role)
+    return usuarios.filter((u) => u.roles?.includes(role))
   }
 
   function responsavelAtual(curso, role) {

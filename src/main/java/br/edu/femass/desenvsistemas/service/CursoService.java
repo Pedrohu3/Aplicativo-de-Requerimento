@@ -36,6 +36,11 @@ public class CursoService {
         return CursoResponse.fromEntity(getCurso(id));
     }
 
+    // FUTURA IMPLEMENTAÇÃO — cursos vindos do WebAcademico:
+    // Hoje cursos são cadastrados manualmente aqui. Na integração real, a lista de cursos (e seus
+    // códigos/nomes oficiais) deveria vir do WebAcademico via sincronização (mesmo padrão sugerido
+    // em UserService.create() e DisciplinaService.criar()), com este CRUD manual servindo só de
+    // fallback/ajuste fino em ambiente de teste.
     @Transactional
     public CursoResponse criar(CursoRequest request) {
         Curso curso = Curso.builder()
@@ -70,7 +75,7 @@ public class CursoService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + request.getUserId()));
 
-        if (user.getRole() != request.getRole()) {
+        if (!user.getRoles().contains(request.getRole())) {
             throw new BusinessException("O usuário não possui a role " + request.getRole() + " necessária para esta etapa");
         }
 

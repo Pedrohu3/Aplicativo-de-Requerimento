@@ -3,21 +3,32 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { criarUsuario } from '../services/userService'
 import { listarCursos } from '../services/cursosService'
 import { ROLES } from '../services/requerimentoService'
-import { getStoredUser } from '../services/authService'
+import { getStoredUser, isAdmin } from '../services/authService'
 
 const emptyForm = {
   nome: '',
   email: '',
   senha: '',
   matricula: '',
-  role: 'PROFESSOR',
+  roles: ['PROFESSOR'],
   cursoId: '',
   admin: false,
 }
 
+function toggleRole(roles, role) {
+  const has = roles.includes(role)
+  if (role === 'ALUNO') {
+    return has ? [] : ['ALUNO']
+  }
+  if (has) {
+    return roles.filter((r) => r !== role)
+  }
+  return [...roles.filter((r) => r !== 'ALUNO'), role]
+}
+
 export default function NovoUsuarioPage() {
   const user = getStoredUser()
-  if (user?.role !== 'ADMIN') return <Navigate to="/" replace />
+  if (!isAdmin(user)) return <Navigate to="/" replace />
 
   const navigate = useNavigate()
   const [cursos, setCursos] = useState([])
@@ -34,14 +45,15 @@ export default function NovoUsuarioPage() {
     setError('')
     setCreating(true)
     try {
+      const isAluno = form.roles.includes('ALUNO')
       await criarUsuario({
         nome: form.nome,
         email: form.email,
         senha: form.senha,
         matricula: form.matricula || null,
-        role: form.role,
-        cursoId: form.role === 'ALUNO' && form.cursoId ? Number(form.cursoId) : null,
-        admin: form.role !== 'ALUNO' ? form.admin : false,
+        roles: form.roles,
+        cursoId: isAluno && form.cursoId ? Number(form.cursoId) : null,
+        admin: !isAluno && form.admin,
       })
       navigate('/usuarios')
     } catch (err) {
@@ -108,16 +120,7 @@ export default function NovoUsuarioPage() {
             onChange={(e) => setForm({ ...form, matricula: e.target.value })}
             className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm"
           />
-          <select
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value, cursoId: '', admin: false })}
-            className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm"
-          >
-            {ROLES.map((role) => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </select>
-          {form.role === 'ALUNO' ? (
+          {form.roles.includes('ALUNO') && (
             <select
               value={form.cursoId}
               onChange={(e) => setForm({ ...form, cursoId: e.target.value })}
@@ -128,17 +131,41 @@ export default function NovoUsuarioPage() {
                 <option key={c.id} value={c.id}>{c.nome}</option>
               ))}
             </select>
-          ) : (
-            <label className="flex items-center gap-2 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                checked={form.admin}
-                onChange={(e) => setForm({ ...form, admin: e.target.checked })}
-              />
-              Conceder permissões de administrador
-            </label>
           )}
         </div>
+
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-slate-700">Roles (acumuláveis, exceto Aluno)</p>
+          <div className="flex flex-wrap gap-2">
+            {ROLES.map((role) => (
+              <label
+                key={role}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.roles.includes(role)}
+                  onChange={() => {
+                    const roles = toggleRole(form.roles, role)
+                    const isAluno = roles.includes('ALUNO')
+                    setForm({ ...form, roles, cursoId: isAluno ? form.cursoId : '', admin: isAluno ? false : form.admin })
+                  }}
+                />
+                {role}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={form.admin}
+            disabled={form.roles.includes('ALUNO')}
+            onChange={(e) => setForm({ ...form, admin: e.target.checked })}
+          />
+          Conceder permissões de administrador
+        </label>
 
         <button
           type="submit"

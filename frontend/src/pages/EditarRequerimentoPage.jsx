@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import DynamicForm from '../components/DynamicForm'
-import { getStoredUser } from '../services/authService'
+import { getStoredUser, isAdmin } from '../services/authService'
 import {
   atualizarRequerimento,
   buscarRequerimento,
   buscarTipo,
+  enviarRequerimento,
 } from '../services/requerimentoService'
 
 export default function EditarRequerimentoPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const user = getStoredUser()
-
-  if (user?.role !== 'ADMIN') return <Navigate to="/" replace />
 
   const [requerimento, setRequerimento] = useState(null)
   const [tipo, setTipo] = useState(null)
@@ -39,6 +38,16 @@ export default function EditarRequerimentoPage() {
     load()
   }, [id])
 
+  if (loading) return <p className="text-sm text-slate-500">Carregando...</p>
+  if (!requerimento || !tipo) {
+    return <p className="text-sm text-red-600">{error || 'Requerimento não encontrado.'}</p>
+  }
+
+  const ehSolicitante = user?.email === requerimento.solicitanteEmail
+  const emAjustes = requerimento.status === 'AJUSTES_SOLICITADOS'
+  const podeEditar = isAdmin(user) || (ehSolicitante && emAjustes)
+  if (!podeEditar) return <Navigate to={`/requerimentos/${id}`} replace />
+
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
@@ -55,9 +64,20 @@ export default function EditarRequerimentoPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-slate-500">Carregando...</p>
-  if (!requerimento || !tipo) {
-    return <p className="text-sm text-red-600">{error || 'Requerimento não encontrado.'}</p>
+  async function handleSalvarEReenviar() {
+    setSaving(true)
+    setError('')
+    try {
+      await atualizarRequerimento(id, {
+        tipoRequerimentoId: requerimento.tipoRequerimentoId,
+        valores,
+      })
+      await enviarRequerimento(id)
+      navigate(`/requerimentos/${id}`)
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Erro ao reenviar requerimento.')
+      setSaving(false)
+    }
   }
 
   return (
@@ -88,16 +108,33 @@ export default function EditarRequerimentoPage() {
           </div>
         )}
 
+        {emAjustes && (
+          <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
+            Corrija os campos apontados e reenvie — o requerimento volta direto para quem solicitou o ajuste.
+          </div>
+        )}
+
         <DynamicForm campos={tipo.campos} valores={valores} onChange={setValores} />
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
-          >
-            {saving ? 'Salvando...' : 'Salvar alterações'}
-          </button>
+        <div className="flex flex-wrap gap-3">
+          {emAjustes && ehSolicitante ? (
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSalvarEReenviar}
+              className="rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60"
+            >
+              {saving ? 'Enviando...' : 'Salvar e reenviar'}
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-60"
+            >
+              {saving ? 'Salvando...' : 'Salvar alterações'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => navigate(`/requerimentos/${id}`)}

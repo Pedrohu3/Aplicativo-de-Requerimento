@@ -160,7 +160,7 @@ export default function ComoFuncionaPage() {
             <div
               key={perfil.role}
               className={`rounded-xl border p-5 ${perfil.cor} ${
-                user?.role === perfil.role ? 'ring-2 ring-primary-400' : ''
+                user?.roles?.includes(perfil.role) ? 'ring-2 ring-primary-400' : ''
               }`}
             >
               <div className="mb-3 flex items-center gap-2">
@@ -169,7 +169,7 @@ export default function ComoFuncionaPage() {
                 </div>
                 <p className="font-semibold text-slate-800">
                   {perfil.titulo}
-                  {user?.role === perfil.role && (
+                  {user?.roles?.includes(perfil.role) && (
                     <span className="ml-2 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
                       Você
                     </span>

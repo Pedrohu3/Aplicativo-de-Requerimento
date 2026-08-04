@@ -1,6 +1,7 @@
 package br.edu.femass.desenvsistemas.dto;
 
 import br.edu.femass.desenvsistemas.entity.EscopoRequerimento;
+import br.edu.femass.desenvsistemas.entity.Role;
 import br.edu.femass.desenvsistemas.entity.TipoRequerimento;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,6 +11,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -27,6 +29,7 @@ public class TipoRequerimentoResponse {
     private LocalDateTime criadoEm;
     private List<CampoFormularioResponse> campos;
     private List<EtapaAprovacaoResponse> etapas;
+    private Set<Role> rolesPermitidas;
 
     public static TipoRequerimentoResponse fromEntity(TipoRequerimento tipo) {
         return TipoRequerimentoResponse.builder()
@@ -39,6 +42,7 @@ public class TipoRequerimentoResponse {
                 .criadoEm(tipo.getCriadoEm())
                 .campos(tipo.getCampos().stream().map(CampoFormularioResponse::fromEntity).toList())
                 .etapas(tipo.getEtapas().stream().map(EtapaAprovacaoResponse::fromEntity).toList())
+                .rolesPermitidas(tipo.getRolesPermitidas())
                 .build();
     }
 }

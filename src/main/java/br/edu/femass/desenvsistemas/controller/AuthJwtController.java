@@ -36,7 +36,7 @@ public class AuthJwtController {
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@Valid @RequestBody UserRequest request) {
-        request.setRole(br.edu.femass.desenvsistemas.entity.Role.ALUNO);
+        request.setRoles(java.util.Set.of(br.edu.femass.desenvsistemas.entity.Role.ALUNO));
 
         UserResponse created = userService.create(request);
 
@@ -48,7 +48,7 @@ public class AuthJwtController {
         userMap.put("nome", created.getNome());
         userMap.put("matricula", created.getMatricula());
         userMap.put("email", created.getEmail());
-        userMap.put("role", created.getRole().name());
+        userMap.put("roles", created.getRoles());
         userMap.put("admin", created.isAdmin());
         userMap.put("cursoId", created.getCursoId());
         userMap.put("cursoNome", created.getCursoNome());
@@ -83,7 +83,7 @@ public class AuthJwtController {
         userMap.put("nome", userResp.getNome());
         userMap.put("matricula", userResp.getMatricula());
         userMap.put("email", userResp.getEmail());
-        userMap.put("role", userResp.getRole().name());
+        userMap.put("roles", userResp.getRoles());
         userMap.put("admin", userResp.isAdmin());
         userMap.put("cursoId", userResp.getCursoId());
         userMap.put("cursoNome", userResp.getCursoNome());

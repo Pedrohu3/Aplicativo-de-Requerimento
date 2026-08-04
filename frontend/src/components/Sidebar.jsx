@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { getStoredUser } from '../services/authService'
+import { getStoredUser, hasAnyRole, isAdmin } from '../services/authService'
 import logo from '../assets/logo.jpg'
 
 const iconClass = 'h-5 w-5 shrink-0'
@@ -122,7 +122,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const visibleGroups = menuGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => !item.roles || item.roles.includes(user?.role)),
+      items: group.items.filter((item) => !item.roles || hasAnyRole(user, item.roles)),
     }))
     .filter((group) => group.items.length > 0)
 
@@ -194,7 +194,11 @@ export default function Sidebar({ isOpen, onClose }) {
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-primary-700">{user?.name ?? 'Usuário'}</p>
-              <p className="truncate text-xs text-gray-mid">{user?.role ?? ''}</p>
+              <p className="truncate text-xs text-gray-mid">
+                {[...(user?.roles ?? []), isAdmin(user) && !user?.roles?.includes('ADMIN') ? 'Admin' : null]
+                  .filter(Boolean)
+                  .join(', ')}
+              </p>
             </div>
           </div>
         </div>

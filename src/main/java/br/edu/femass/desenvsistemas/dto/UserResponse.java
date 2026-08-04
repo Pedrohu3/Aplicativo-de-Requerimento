@@ -8,6 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+import java.util.Set;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,10 +22,11 @@ public class UserResponse {
     private String nome;
     private String matricula;
     private String email;
-    private Role role;
+    private Set<Role> roles;
     private boolean admin;
     private Long cursoId;
     private String cursoNome;
+    private List<String> cursosVinculados;
 
     public static UserResponse fromEntity(User user) {
         return UserResponse.builder()
@@ -30,7 +34,7 @@ public class UserResponse {
                 .nome(user.getNome())
                 .matricula(user.getMatricula())
                 .email(user.getEmail())
-                .role(user.getRole())
+                .roles(user.getRoles())
                 .admin(user.isAdmin())
                 .cursoId(user.getCurso() != null ? user.getCurso().getId() : null)
                 .cursoNome(user.getCurso() != null ? user.getCurso().getNome() : null)

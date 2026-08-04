@@ -27,7 +27,7 @@ class AuthJwtIntegrationTest {
                   "nome": "Usuário Teste",
                   "email": "%s",
                   "senha": "senha123",
-                  "role": "ALUNO"
+                  "roles": ["ALUNO"]
                 }
                 """.formatted(email);
 

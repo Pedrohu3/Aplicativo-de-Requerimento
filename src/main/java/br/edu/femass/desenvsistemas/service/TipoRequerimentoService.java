@@ -31,7 +31,7 @@ import java.util.Set;
 public class TipoRequerimentoService {
 
     private static final Set<Role> ROLES_CRIACAO = EnumSet.of(
-            Role.ADMIN, Role.SECRETARIO, Role.COORDENADOR, Role.DIRETOR
+            Role.SECRETARIO, Role.COORDENADOR, Role.DIRETOR
     );
 
     private static final Set<CampoTipo> TIPOS_COM_OPCOES = EnumSet.of(
@@ -75,6 +75,7 @@ public class TipoRequerimentoService {
                 .descricao(request.getDescricao())
                 .escopo(request.getEscopo())
                 .criador(criador)
+                .rolesPermitidas(normalizarRolesPermitidas(request.getRolesPermitidas()))
                 .build();
 
         adicionarCamposFixos(tipo);
@@ -101,6 +102,7 @@ public class TipoRequerimentoService {
         tipo.setNome(request.getNome());
         tipo.setDescricao(request.getDescricao());
         tipo.setEscopo(request.getEscopo());
+        tipo.setRolesPermitidas(normalizarRolesPermitidas(request.getRolesPermitidas()));
 
         // Recria os campos fixos se o conjunto esperado mudou (ex.: escopo trocou para/de
         // ADMINISTRATIVO ou DISCIPLINA) — só é permitido enquanto o tipo não tiver requerimentos.
@@ -172,9 +174,13 @@ public class TipoRequerimentoService {
     }
 
     private void validarPermissaoCriacao(User usuario) {
-        if (!ROLES_CRIACAO.contains(usuario.getRole())) {
+        if (!usuario.isEffectiveAdmin() && usuario.getRoles().stream().noneMatch(ROLES_CRIACAO::contains)) {
             throw new ForbiddenException("Sem permissão para gerenciar tipos de requerimento");
         }
+    }
+
+    private Set<Role> normalizarRolesPermitidas(Set<Role> roles) {
+        return roles == null ? Set.of() : Set.copyOf(roles);
     }
 
     private void validarCampos(List<CampoFormularioRequest> campos) {

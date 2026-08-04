@@ -43,6 +43,15 @@ public class DisciplinaService {
         return DisciplinaResponse.fromEntity(getDisciplina(id));
     }
 
+    // FUTURA IMPLEMENTAÇÃO — disciplinas (e a matrícula do aluno nelas) vindas do WebAcademico:
+    // Hoje disciplinas são cadastradas manualmente aqui, e QUALQUER aluno do curso pode abrir
+    // requerimento pra QUALQUER disciplina do curso (não existe o conceito de matrícula por
+    // disciplina/período). Na integração real, as disciplinas em si deveriam vir sincronizadas do
+    // WebAcademico (mesmo padrão sugerido em UserService.create()), e — mais importante — seria
+    // preciso introduzir a matrícula do aluno por disciplina/período (nova entidade
+    // `MatriculaDisciplina`, populada pela mesma sincronização) para restringir corretamente quais
+    // disciplinas cada aluno pode selecionar. Ver o comentário detalhado em
+    // RequerimentoService.vincularDisciplina() para o desenho dessa validação.
     @Transactional
     public DisciplinaResponse criar(DisciplinaRequest request) {
         Curso curso = cursoService.getCurso(request.getCursoId());
@@ -83,7 +92,7 @@ public class DisciplinaService {
         }
         User professor = userRepository.findById(professorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + professorId));
-        if (professor.getRole() != Role.PROFESSOR) {
+        if (!professor.getRoles().contains(Role.PROFESSOR)) {
             throw new BusinessException("O usuário não possui a role PROFESSOR necessária para esta disciplina");
         }
         return professor;

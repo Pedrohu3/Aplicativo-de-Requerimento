@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { getStoredUser } from '../services/authService'
+import { getStoredUser, isAdmin } from '../services/authService'
 import { listarCursos } from '../services/cursosService'
 import {
   atualizarDisciplina,
@@ -12,7 +12,7 @@ import { listarUsuarios } from '../services/userService'
 
 export default function DisciplinasPage() {
   const user = getStoredUser()
-  if (user?.role !== 'ADMIN') return <Navigate to="/" replace />
+  if (!isAdmin(user)) return <Navigate to="/" replace />
 
   const [disciplinas, setDisciplinas] = useState([])
   const [cursos, setCursos] = useState([])
@@ -32,7 +32,7 @@ export default function DisciplinasPage() {
       const [d, c, u] = await Promise.all([listarDisciplinas(), listarCursos(), listarUsuarios()])
       setDisciplinas(d)
       setCursos(c)
-      setProfessores(u.filter((usr) => usr.role === 'PROFESSOR'))
+      setProfessores(u.filter((usr) => usr.roles?.includes('PROFESSOR')))
     } catch {
       setError('Erro ao carregar dados.')
     } finally {

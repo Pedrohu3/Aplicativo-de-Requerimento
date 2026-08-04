@@ -37,7 +37,7 @@ function QuickLink({ to, label, sub, icon, accent }) {
 
 export default function DashboardPage() {
   const user = getStoredUser()
-  const isStaff = Boolean(user?.role && user.role !== 'ALUNO')
+  const isStaff = Boolean(user?.roles?.length > 0 && !user.roles.includes('ALUNO'))
   const firstName = user?.name?.split(' ')[0] ?? 'usuário'
 
   const [meus, setMeus] = useState([])
