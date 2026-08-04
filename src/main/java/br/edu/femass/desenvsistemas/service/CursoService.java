@@ -33,7 +33,7 @@ public class CursoService {
 
     @Transactional(readOnly = true)
     public CursoResponse buscarPorId(Long id) {
-        return CursoResponse.fromEntity(getCurso(id));
+        return CursoResponse.fromEntity(getCurso(id)); 
     }
 
     // FUTURA IMPLEMENTAÇÃO — cursos vindos do WebAcademico:
