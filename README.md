@@ -342,3 +342,7 @@ O `docker-compose.yml` builda a imagem do backend a partir do código — não h
 ```bash
 docker compose build backend && docker compose up -d backend
 ```
+
+---
+
+Gabriel Bertussi.
